@@ -1,4 +1,4 @@
-# Demons' Bounty: Gluttony
+# The Roots of Sin: Gluttony
 
 A Forge 1.20.1 Minecraft mod built around accepting the sin of Gluttony, harvesting souls, and permanently extracting a portion of defeated enemies' strength.
 
