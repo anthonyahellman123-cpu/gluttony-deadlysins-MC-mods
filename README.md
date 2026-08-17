@@ -19,4 +19,6 @@ After four recorded bosses, the shared Sin Ability key unlocks Sovereign's Advan
 
 The reusable Sin Ability HUD slot changes its icon and color for the player's awakened sin. It displays the server-authoritative radial cooldown to tenths of a second and switches to a bright recast indicator during Absolute Domination's follow-up window.
 
+Pride's Sol uses a dedicated solar apple texture with a white-gold radiant core and restrained amber-orange edges.
+
 Only one natural sin may be awakened per player. Optional mod integrations enhance classification but are never required for the base progression.

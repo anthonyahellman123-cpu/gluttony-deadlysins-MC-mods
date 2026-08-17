@@ -70,6 +70,16 @@ public final class AbilityHudOverlay {
                 : ModItems.PRIDE_SOL.get().getDefaultInstance();
         graphics.renderItem(icon, x + 4, y + 4);
 
+        // Item rendering uses a high GUI depth. Flush it, then move all state
+        // feedback above the icon so neither the timer nor recast can hide.
+        graphics.flush();
+        graphics.pose().pushPose();
+        graphics.pose().translate(0.0F, 0.0F, 300.0F);
+        renderState(graphics, minecraft, x, y, size);
+        graphics.pose().popPose();
+    }
+
+    private static void renderState(GuiGraphics graphics, Minecraft minecraft, int x, int y, int size) {
         if (!unlocked) {
             graphics.fill(x, y, x + size, y + size, 0xB0000000);
             drawCentered(graphics, minecraft, "LOCK", x + size / 2, y + 8, 0xFFAAAAAA);
