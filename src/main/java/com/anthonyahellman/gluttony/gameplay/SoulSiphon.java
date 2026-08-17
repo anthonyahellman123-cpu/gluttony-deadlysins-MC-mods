@@ -45,7 +45,7 @@ public final class SoulSiphon {
         AABB search = player.getBoundingBox().expandTowards(look.scale(RANGE)).inflate(1.0);
         EntityHitResult hit = ProjectileUtil.getEntityHitResult(
                 player.level(), player, start, end, search,
-                entity -> isValidTarget(player, entity), RANGE * RANGE
+                entity -> isValidTarget(player, entity), (float) (RANGE * RANGE)
         );
         return hit != null && hit.getEntity() instanceof LivingEntity living ? living : null;
     }
