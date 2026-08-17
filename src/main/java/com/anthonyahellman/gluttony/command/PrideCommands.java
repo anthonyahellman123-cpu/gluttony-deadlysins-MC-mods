@@ -43,7 +43,10 @@ public final class PrideCommands {
                     trial.displayName(), data.count(trial), trial.required(), data.complete(trial) ? " — COMPLETE" : "")), false);
         }
         source.sendSuccess(() -> Component.literal(String.format("Damage: %.0f%% ordinary | %.0f%% bosses",
-                PrideEvents.NON_BOSS_DAMAGE_MULTIPLIER * 100.0F, PrideEvents.BOSS_DAMAGE_MULTIPLIER * 100.0F)), false);
+                PrideEvents.NON_BOSS_DAMAGE_MULTIPLIER * 100.0F,
+                (PrideEvents.BOSS_DAMAGE_MULTIPLIER + data.bossDamageBonus()) * 100.0)), false);
+        source.sendSuccess(() -> Component.literal(String.format("Conquered Stats: +%.0f max health | +%.0f attack",
+                data.maxHealthBonus(), data.attackDamageBonus())), false);
         source.sendSuccess(() -> Component.literal("Trials completed: " + data.completedTrials() + " / 4"), false);
         return 1;
     }

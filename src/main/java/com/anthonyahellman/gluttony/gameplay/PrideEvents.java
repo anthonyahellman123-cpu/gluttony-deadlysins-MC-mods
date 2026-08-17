@@ -24,8 +24,11 @@ public final class PrideEvents {
     public static void onLivingHurt(LivingHurtEvent event) {
         if (!(event.getSource().getEntity() instanceof ServerPlayer player)) return;
         if (SinData.selected(player) != SinData.NaturalSin.PRIDE) return;
-        event.setAmount(event.getAmount() * (BossClassifier.isBoss(event.getEntity())
-                ? BOSS_DAMAGE_MULTIPLIER : NON_BOSS_DAMAGE_MULTIPLIER));
+        float multiplier = NON_BOSS_DAMAGE_MULTIPLIER;
+        if (BossClassifier.isBoss(event.getEntity())) {
+            multiplier = (float) (BOSS_DAMAGE_MULTIPLIER + PrideData.of(player).bossDamageBonus());
+        }
+        event.setAmount(event.getAmount() * multiplier);
     }
 
     @SubscribeEvent
@@ -37,7 +40,10 @@ public final class PrideEvents {
         if (trial == null) return;
 
         PrideData data = PrideData.of(player);
+        double oldMaximumHealth = player.getMaxHealth();
         boolean newlyCompleted = data.increment(trial);
+        PrideProgression.applyAttributes(player);
+        player.heal((float) Math.max(0.0, player.getMaxHealth() - oldMaximumHealth));
         player.displayClientMessage(Component.literal(String.format("PRIDE TRIAL — %s %d/%d",
                 trial.displayName(), data.count(trial), trial.required())).withStyle(ChatFormatting.GOLD), false);
         if (newlyCompleted) {
@@ -46,6 +52,11 @@ public final class PrideEvents {
                 player.displayClientMessage(Component.literal("PRIDE STANDS ABOVE ALL.").withStyle(ChatFormatting.GOLD), false);
             }
         }
+        player.displayClientMessage(Component.literal(String.format(
+                "Pride ascends: +%.0f max health | +%.0f attack | %.1f%% boss damage",
+                data.maxHealthBonus(), data.attackDamageBonus(),
+                (BOSS_DAMAGE_MULTIPLIER + data.bossDamageBonus()) * 100.0))
+                .withStyle(ChatFormatting.GRAY), false);
     }
 
     private static PrideData.Trial trialFor(LivingEntity entity) {

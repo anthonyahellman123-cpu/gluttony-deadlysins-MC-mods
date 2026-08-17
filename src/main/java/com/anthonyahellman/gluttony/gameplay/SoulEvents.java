@@ -75,16 +75,23 @@ public final class SoulEvents {
         SinData.copy(oldPlayer, newPlayer);
         event.getOriginal().invalidateCaps();
         applyAttributes(newPlayer, GluttonyData.of(newPlayer));
+        PrideProgression.applyAttributes(newPlayer);
     }
 
     @SubscribeEvent
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player) applyAttributes(player, GluttonyData.of(player));
+        if (event.getEntity() instanceof ServerPlayer player) {
+            applyAttributes(player, GluttonyData.of(player));
+            PrideProgression.applyAttributes(player);
+        }
     }
 
     @SubscribeEvent
     public static void onRespawn(PlayerEvent.PlayerRespawnEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player) applyAttributes(player, GluttonyData.of(player));
+        if (event.getEntity() instanceof ServerPlayer player) {
+            applyAttributes(player, GluttonyData.of(player));
+            PrideProgression.applyAttributes(player);
+        }
     }
 
     private static void applyAttributes(ServerPlayer player, GluttonyData data) {

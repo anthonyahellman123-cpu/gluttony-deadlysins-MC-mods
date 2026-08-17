@@ -59,6 +59,32 @@ public final class PrideData {
         return completed;
     }
 
+    public int totalBossKills() {
+        int total = 0;
+        for (Trial trial : Trial.values()) total += count(trial);
+        return total;
+    }
+
+    public double maxHealthBonus() {
+        return totalBossKills() * 2.0 + completedTrials() * 10.0;
+    }
+
+    public double attackDamageBonus() {
+        return totalBossKills() + completedTrials() * 5.0;
+    }
+
+    public double bossDamageBonus() {
+        double bonus = count(Trial.ELDER_GUARDIAN) * 0.005;
+        bonus += count(Trial.WITHER) * 0.01;
+        bonus += count(Trial.ENDER_DRAGON) * 0.01;
+        bonus += count(Trial.WARDEN) * 0.05;
+        if (complete(Trial.ELDER_GUARDIAN)) bonus += 0.05;
+        if (complete(Trial.WITHER)) bonus += 0.08;
+        if (complete(Trial.ENDER_DRAGON)) bonus += 0.10;
+        if (complete(Trial.WARDEN)) bonus += 0.20;
+        return bonus;
+    }
+
     public boolean fullyAwakened() {
         return completedTrials() == Trial.values().length;
     }
