@@ -2,6 +2,7 @@ package com.anthonyahellman.gluttony.gameplay;
 
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.data.GluttonyData;
+import com.anthonyahellman.gluttony.data.SinData;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.food.FoodData;
 import net.minecraftforge.event.TickEvent;
@@ -16,6 +17,7 @@ public final class AwakeningEvents {
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END || event.player.level().isClientSide) return;
         if (!(event.player instanceof ServerPlayer player)) return;
+        if (SinData.selected(player) != SinData.NaturalSin.GLUTTONY) return;
 
         GluttonyData data = GluttonyData.of(player);
         if (!data.active() || !data.awakening()) return;

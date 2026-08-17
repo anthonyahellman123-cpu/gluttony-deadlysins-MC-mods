@@ -2,6 +2,8 @@ package com.anthonyahellman.gluttony.gameplay;
 
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.data.GluttonyData;
+import com.anthonyahellman.gluttony.data.PrideData;
+import com.anthonyahellman.gluttony.data.SinData;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -28,6 +30,7 @@ public final class SoulEvents {
         if (!(event.getSource().getEntity() instanceof ServerPlayer player)) return;
         LivingEntity victim = event.getEntity();
         if (victim instanceof ServerPlayer) return;
+        if (SinData.selected(player) != SinData.NaturalSin.GLUTTONY) return;
 
         GluttonyData data = GluttonyData.of(player);
         if (!data.active()) return;
@@ -68,6 +71,8 @@ public final class SoulEvents {
         if (!(event.getOriginal() instanceof ServerPlayer oldPlayer) || !(event.getEntity() instanceof ServerPlayer newPlayer)) return;
         event.getOriginal().reviveCaps();
         GluttonyData.copy(oldPlayer, newPlayer);
+        PrideData.copy(oldPlayer, newPlayer);
+        SinData.copy(oldPlayer, newPlayer);
         event.getOriginal().invalidateCaps();
         applyAttributes(newPlayer, GluttonyData.of(newPlayer));
     }

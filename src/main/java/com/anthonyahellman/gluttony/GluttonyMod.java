@@ -21,6 +21,7 @@ public final class GluttonyMod {
     private void addCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.FOOD_AND_DRINKS) {
             event.accept(ModItems.CURSED_APPLE);
+            event.accept(ModItems.PRIDE_SOL);
         }
     }
 }

@@ -1,4 +1,4 @@
-# The Roots of Sin: Gluttony
+# The Roots of Sin
 
 A Forge 1.20.1 Minecraft mod built around accepting the sin of Gluttony, harvesting souls, and permanently extracting a portion of defeated enemies' strength.
 
@@ -11,4 +11,8 @@ A Forge 1.20.1 Minecraft mod built around accepting the sin of Gluttony, harvest
 
 Eating the apple begins a dangerous awakening: saturation is stripped away and hunger rapidly drains until the player secures their first non-player kill. Use `/gluttony stats` to inspect awakening state, progression, extraction efficiency, and consumed attributes.
 
-This repository is the active development home for the standalone Gluttony prototype.
+## Pride slice
+
+Pride is awakened by eating Pride's Sol, crafted from an apple and four Nether Stars. Pride deals reduced damage to ordinary creatures and increased damage to bosses. Its progression consists of four independent supremacy trials: 12 Ender Dragons, 8 Withers, 4 Elder Guardians, and 2 Wardens.
+
+Only one natural sin may be awakened per player. Optional mod integrations enhance classification but are never required for the base progression.

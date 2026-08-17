@@ -1,6 +1,7 @@
 package com.anthonyahellman.gluttony.gameplay;
 
 import com.anthonyahellman.gluttony.data.GluttonyData;
+import com.anthonyahellman.gluttony.data.SinData;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -29,6 +30,10 @@ public final class SoulSiphon {
     private SoulSiphon() {}
 
     public static void tryCast(ServerPlayer player) {
+        if (SinData.selected(player) != SinData.NaturalSin.GLUTTONY) {
+            feedback(player, "Gluttony is dormant—consume the Cursed Apple first.", ChatFormatting.DARK_GRAY);
+            return;
+        }
         GluttonyData data = GluttonyData.of(player);
         if (!data.active()) {
             feedback(player, "Gluttony is dormant—consume the Cursed Apple first.", ChatFormatting.DARK_GRAY);
