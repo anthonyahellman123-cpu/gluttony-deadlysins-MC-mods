@@ -3,6 +3,8 @@ package com.anthonyahellman.gluttony.gameplay;
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.data.GluttonyData;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -30,6 +32,8 @@ public final class SoulEvents {
         GluttonyData data = GluttonyData.of(player);
         if (!data.active()) return;
 
+        int oldLevel = data.level();
+
         double maxHealth = victim.getAttributeValue(Attributes.MAX_HEALTH);
         double armor = victim.getAttributeValue(Attributes.ARMOR);
         double attack = victim.getAttributeValue(Attributes.ATTACK_DAMAGE);
@@ -39,6 +43,17 @@ public final class SoulEvents {
         data.addSouls(souls);
         data.addExtractedStats(maxHealth * fraction, Math.max(0, attack) * fraction);
         applyAttributes(player, data);
+
+        if (data.awakening()) {
+            data.stabilize();
+            player.getFoodData().setFoodLevel(Math.max(6, player.getFoodData().getFoodLevel()));
+            player.displayClientMessage(Component.literal("Gluttony has tasted its first soul.").withStyle(ChatFormatting.DARK_RED), false);
+            player.displayClientMessage(Component.literal("The hunger settles—but it will never leave.").withStyle(ChatFormatting.GRAY), false);
+        }
+
+        if (data.level() > oldLevel) {
+            player.displayClientMessage(Component.literal("GLUTTONY LEVEL " + data.level()).withStyle(ChatFormatting.GOLD), false);
+        }
     }
 
     @SubscribeEvent

@@ -21,8 +21,10 @@ public final class CursedAppleItem extends Item {
         if (!level.isClientSide && entity instanceof ServerPlayer player) {
             GluttonyData data = GluttonyData.of(player);
             if (!data.active()) {
-                data.activate();
+                data.beginAwakening();
+                player.getFoodData().setSaturation(0.0F);
                 player.displayClientMessage(Component.literal("Something bottomless awakens inside you.").withStyle(ChatFormatting.DARK_RED), false);
+                player.displayClientMessage(Component.literal("Feed it before it consumes you.").withStyle(ChatFormatting.RED), false);
             }
         }
         return result;
