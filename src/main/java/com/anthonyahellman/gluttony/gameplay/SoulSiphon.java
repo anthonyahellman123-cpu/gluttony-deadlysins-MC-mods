@@ -55,7 +55,7 @@ public final class SoulSiphon {
         return living.isAlive() && !living.isSpectator() && player.hasLineOfSight(living);
     }
 
-    private static void spawnSoulTrail(ServerLevel level, LivingEntity target, ServerPlayer player) {
+    public static void spawnSoulTrail(ServerLevel level, LivingEntity target, ServerPlayer player) {
         Vec3 from = target.getBoundingBox().getCenter();
         Vec3 to = player.getEyePosition().add(0.0, -0.35, 0.0);
         for (int i = 0; i <= 6; i++) {

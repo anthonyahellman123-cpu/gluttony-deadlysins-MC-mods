@@ -29,24 +29,27 @@ public final class SoulEvents {
         LivingEntity victim = event.getEntity();
         if (victim instanceof ServerPlayer) return;
 
-        // Soul Siphon awards souls as it deals damage, but never extracts stats or
-        // triggers the normal kill reward when its damage delivers the final blow.
-        if (victim.getPersistentData().getBoolean(SoulSiphon.SIPHON_DAMAGE_TAG)) return;
-
         GluttonyData data = GluttonyData.of(player);
         if (!data.active()) return;
 
+        boolean siphonKill = victim.getPersistentData().getBoolean(SoulSiphon.SIPHON_DAMAGE_TAG);
         int oldLevel = data.level();
 
-        double maxHealth = victim.getAttributeValue(Attributes.MAX_HEALTH);
-        double armor = victim.getAttributeValue(Attributes.ARMOR);
-        double attack = victim.getAttributeValue(Attributes.ATTACK_DAMAGE);
-        double souls = Math.max(1.0, maxHealth * 0.5 + armor * 0.75) * GluttonyExtraction.soulMultiplier(data.level());
-        double fraction = GluttonyExtraction.statFraction(data.level());
+        // Siphon already awards its bonus souls per damage pulse. Its killing blow
+        // stabilizes awakening but deliberately grants no normal souls or stats.
+        if (!siphonKill) {
+            double maxHealth = attributeValueOrZero(victim, Attributes.MAX_HEALTH);
+            double armor = attributeValueOrZero(victim, Attributes.ARMOR);
+            double attack = attributeValueOrZero(victim, Attributes.ATTACK_DAMAGE);
+            double souls = Math.max(1.0, maxHealth * 0.5 + armor * 0.75) * GluttonyExtraction.soulMultiplier(data.level());
+            double fraction = GluttonyExtraction.statFraction(data.level());
 
-        data.addSouls(souls);
-        data.addExtractedStats(maxHealth * fraction, Math.max(0, attack) * fraction);
-        applyAttributes(player, data);
+            data.addSouls(souls);
+            data.addExtractedStats(maxHealth * fraction, Math.max(0, attack) * fraction);
+            applyAttributes(player, data);
+        }
+
+        SoulSiphon.spawnSoulTrail(player.serverLevel(), victim, player);
 
         if (data.awakening()) {
             data.stabilize();
@@ -90,5 +93,10 @@ public final class SoulEvents {
         AttributeModifier old = attribute.getModifier(id);
         if (old != null) attribute.removeModifier(old);
         if (amount > 0) attribute.addPermanentModifier(new AttributeModifier(id, name, amount, AttributeModifier.Operation.ADDITION));
+    }
+
+    private static double attributeValueOrZero(LivingEntity entity, net.minecraft.world.entity.ai.attributes.Attribute attribute) {
+        AttributeInstance instance = entity.getAttribute(attribute);
+        return instance == null ? 0.0 : instance.getValue();
     }
 }
