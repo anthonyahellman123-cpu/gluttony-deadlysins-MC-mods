@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "EFE",
+    "RAR",
+    "EFE"
+  ],
+  "key": {
+    "E": { "item": "minecraft:fermented_spider_eye" },
+    "F": { "item": "minecraft:rotten_flesh" },
+    "R": { "item": "minecraft:redstone" },
+    "A": { "item": "minecraft:apple" }
+  },
+  "result": {
+    "item": "demonsbountygluttony:cursed_apple",
+    "count": 1
+  }
+}
