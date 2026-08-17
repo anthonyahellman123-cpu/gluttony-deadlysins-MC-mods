@@ -76,6 +76,7 @@ public final class SoulEvents {
         event.getOriginal().invalidateCaps();
         applyAttributes(newPlayer, GluttonyData.of(newPlayer));
         PrideProgression.applyAttributes(newPlayer);
+        AbilityHudSync.send(newPlayer);
     }
 
     @SubscribeEvent
@@ -83,6 +84,7 @@ public final class SoulEvents {
         if (event.getEntity() instanceof ServerPlayer player) {
             applyAttributes(player, GluttonyData.of(player));
             PrideProgression.applyAttributes(player);
+            AbilityHudSync.send(player);
         }
     }
 
@@ -91,6 +93,7 @@ public final class SoulEvents {
         if (event.getEntity() instanceof ServerPlayer player) {
             applyAttributes(player, GluttonyData.of(player));
             PrideProgression.applyAttributes(player);
+            AbilityHudSync.send(player);
         }
     }
 

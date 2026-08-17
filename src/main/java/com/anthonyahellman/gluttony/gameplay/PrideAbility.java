@@ -60,6 +60,7 @@ public final class PrideAbility {
         PrideData data = PrideData.of(player);
         if (data.totalBossKills() < UNLOCK_KILLS) {
             feedback(player, "Sovereign's Advance unlocks after four conquered bosses.", ChatFormatting.GOLD);
+            AbilityHudSync.send(player);
             return;
         }
         if (!player.isAlive() || player.isSpectator()) return;
@@ -71,6 +72,7 @@ public final class PrideAbility {
             if (entity instanceof LivingEntity target && target.isAlive() && target.level() == player.level()) {
                 beginDash(player, directionTo(player, target), true);
                 player.getPersistentData().remove(FOLLOW_UP_UNTIL);
+                AbilityHudSync.send(player);
                 return;
             }
         }
@@ -79,6 +81,7 @@ public final class PrideAbility {
         if (now < cooldown) {
             feedback(player, String.format("Sovereign's Advance recovers in %.1fs", (cooldown - now) / 20.0),
                     ChatFormatting.GRAY);
+            AbilityHudSync.send(player);
             return;
         }
 
@@ -86,6 +89,7 @@ public final class PrideAbility {
         player.getPersistentData().putLong(COOLDOWN_UNTIL, now + RECOVERY_TICKS);
         player.displayClientMessage(Component.literal(data.fullyAwakened()
                 ? "ABSOLUTE DOMINATION" : "SOVEREIGN'S ADVANCE").withStyle(ChatFormatting.GOLD), true);
+        AbilityHudSync.send(player);
     }
 
     private static void beginDash(ServerPlayer player, Vec3 direction, boolean followUp) {
@@ -106,6 +110,7 @@ public final class PrideAbility {
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END || event.player.level().isClientSide) return;
         if (!(event.player instanceof ServerPlayer player)) return;
+        if (player.tickCount % 20 == 0) AbilityHudSync.send(player);
         int ticks = player.getPersistentData().getInt(DASH_TICKS);
         if (ticks <= 0) return;
 
@@ -167,6 +172,7 @@ public final class PrideAbility {
                 tag.putLong(FOLLOW_UP_UNTIL, player.level().getGameTime() + RECAST_WINDOW);
                 player.displayClientMessage(Component.literal("Press again — I WASN'T FINISHED.")
                         .withStyle(ChatFormatting.YELLOW), true);
+                AbilityHudSync.send(player);
             }
         }
     }
@@ -244,5 +250,16 @@ public final class PrideAbility {
 
     private static void feedback(ServerPlayer player, String message, ChatFormatting color) {
         player.displayClientMessage(Component.literal(message).withStyle(color), true);
+    }
+
+    public static int cooldownRemaining(ServerPlayer player) {
+        return (int) Math.max(0L, player.getPersistentData().getLong(COOLDOWN_UNTIL)
+                - player.level().getGameTime());
+    }
+
+    public static int recastRemaining(ServerPlayer player) {
+        if (!player.getPersistentData().hasUUID(FOLLOW_UP_TARGET)) return 0;
+        return (int) Math.max(0L, player.getPersistentData().getLong(FOLLOW_UP_UNTIL)
+                - player.level().getGameTime());
     }
 }

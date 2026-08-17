@@ -1,6 +1,7 @@
 package com.anthonyahellman.gluttony.item;
 
 import com.anthonyahellman.gluttony.data.SinData;
+import com.anthonyahellman.gluttony.gameplay.AbilityHudSync;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -45,6 +46,7 @@ public final class PrideSolItem extends Item {
                     .withStyle(ChatFormatting.GOLD), false);
             player.displayClientMessage(Component.literal("Only worthy victories can elevate Pride.")
                     .withStyle(ChatFormatting.YELLOW), false);
+            AbilityHudSync.send(player);
         }
         return result;
     }

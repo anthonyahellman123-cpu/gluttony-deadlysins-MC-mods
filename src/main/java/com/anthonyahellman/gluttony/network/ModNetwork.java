@@ -19,5 +19,7 @@ public final class ModNetwork {
     public static void register() {
         CHANNEL.registerMessage(0, SoulSiphonPacket.class,
                 SoulSiphonPacket::encode, SoulSiphonPacket::decode, SoulSiphonPacket::handle);
+        CHANNEL.registerMessage(1, AbilityStatePacket.class,
+                AbilityStatePacket::encode, AbilityStatePacket::decode, AbilityStatePacket::handle);
     }
 }

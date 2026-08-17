@@ -65,6 +65,7 @@ public final class PrideEvents {
                 data.maxHealthBonus(), data.attackDamageBonus(),
                 (BOSS_DAMAGE_MULTIPLIER + data.bossDamageBonus()) * 100.0))
                 .withStyle(ChatFormatting.GRAY), false);
+        AbilityHudSync.send(player);
     }
 
     private static PrideData.Trial trialFor(LivingEntity entity) {

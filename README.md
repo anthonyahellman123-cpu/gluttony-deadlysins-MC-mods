@@ -17,4 +17,6 @@ Pride is awakened by eating Pride's Sol, crafted from an apple and four Nether S
 
 After four recorded bosses, the shared Sin Ability key unlocks Sovereign's Advance, a weapon-hit dash. Completed trials add Grounding, healing suppression, underwater control, and an unstoppable impact. Completing all trials evolves it into Absolute Domination: successful hits grant regeneration and open a one-second auto-targeted follow-up that deals maximum-health damage.
 
+The reusable Sin Ability HUD slot changes its icon and color for the player's awakened sin. It displays the server-authoritative radial cooldown to tenths of a second and switches to a bright recast indicator during Absolute Domination's follow-up window.
+
 Only one natural sin may be awakened per player. Optional mod integrations enhance classification but are never required for the base progression.

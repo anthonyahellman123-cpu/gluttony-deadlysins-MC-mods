@@ -2,6 +2,7 @@ package com.anthonyahellman.gluttony.item;
 
 import com.anthonyahellman.gluttony.data.GluttonyData;
 import com.anthonyahellman.gluttony.data.SinData;
+import com.anthonyahellman.gluttony.gameplay.AbilityHudSync;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -48,6 +49,7 @@ public final class CursedAppleItem extends Item {
                 player.getFoodData().setSaturation(0.0F);
                 player.displayClientMessage(Component.literal("Something bottomless awakens inside you.").withStyle(ChatFormatting.DARK_RED), false);
                 player.displayClientMessage(Component.literal("Feed it before it consumes you.").withStyle(ChatFormatting.RED), false);
+                AbilityHudSync.send(player);
             }
         }
         return result;
