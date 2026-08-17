@@ -4,6 +4,8 @@ import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.network.ModNetwork;
 import com.anthonyahellman.gluttony.network.SoulSiphonPacket;
 import net.minecraft.client.Minecraft;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -11,13 +13,22 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = GluttonyMod.MOD_ID, value = Dist.CLIENT)
 public final class ClientForgeEvents {
+    private static boolean wasSiphoning;
+
     private ClientForgeEvents() {}
 
     @SubscribeEvent
     public static void clientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !ClientModEvents.SOUL_SIPHON.isDown()) return;
+        if (event.phase != TickEvent.Phase.END) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.level == null || minecraft.isPaused()) return;
+        boolean siphoning = ClientModEvents.SOUL_SIPHON.isDown();
+        if (siphoning && !wasSiphoning) {
+            minecraft.player.displayClientMessage(
+                    Component.literal("Soul Siphon engaged").withStyle(ChatFormatting.DARK_PURPLE), true);
+        }
+        wasSiphoning = siphoning;
+        if (!siphoning) return;
         if (minecraft.player.tickCount % 10 == 0) {
             ModNetwork.CHANNEL.sendToServer(new SoulSiphonPacket());
         }

@@ -2,6 +2,8 @@ package com.anthonyahellman.gluttony.gameplay;
 
 import com.anthonyahellman.gluttony.data.GluttonyData;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -22,20 +24,36 @@ public final class SoulSiphon {
 
     public static void tryPulse(ServerPlayer player) {
         GluttonyData data = GluttonyData.of(player);
-        if (!data.active() || data.level() < UNLOCK_LEVEL || !player.isAlive() || player.isSpectator()) return;
+        if (!data.active()) {
+            feedback(player, "Gluttony is dormant—consume the Cursed Apple first.", ChatFormatting.DARK_GRAY);
+            return;
+        }
+        if (data.level() < UNLOCK_LEVEL) {
+            feedback(player, "Soul Siphon requires Gluttony level 10.", ChatFormatting.RED);
+            return;
+        }
+        if (!player.isAlive() || player.isSpectator()) return;
 
         LivingEntity target = findTarget(player);
-        if (target == null) return;
+        if (target == null) {
+            feedback(player, "Aim at one living creature within 16 blocks.", ChatFormatting.GRAY);
+            return;
+        }
 
         float healthBefore = target.getHealth();
         target.getPersistentData().putBoolean(SIPHON_DAMAGE_TAG, true);
         boolean hurt = target.hurt(player.damageSources().indirectMagic(player, player), DAMAGE_PER_PULSE);
         target.getPersistentData().remove(SIPHON_DAMAGE_TAG);
-        if (!hurt) return;
+        if (!hurt) {
+            feedback(player, "That soul resists the siphon.", ChatFormatting.RED);
+            return;
+        }
 
         double damageDealt = Math.max(0.0, healthBefore - target.getHealth());
         if (damageDealt > 0.0) data.addSouls(damageDealt * SOULS_PER_DAMAGE);
         spawnSoulTrail((ServerLevel) player.level(), target, player);
+        player.displayClientMessage(Component.literal(String.format("Siphoning %s  +%.2f souls",
+                target.getName().getString(), damageDealt * SOULS_PER_DAMAGE)).withStyle(ChatFormatting.DARK_PURPLE), true);
     }
 
     private static LivingEntity findTarget(ServerPlayer player) {
@@ -61,6 +79,12 @@ public final class SoulSiphon {
         for (int i = 0; i <= 6; i++) {
             Vec3 point = from.lerp(to, i / 6.0);
             level.sendParticles(ParticleTypes.SOUL, point.x, point.y, point.z, 1, 0.03, 0.03, 0.03, 0.01);
+        }
+    }
+
+    private static void feedback(ServerPlayer player, String message, ChatFormatting color) {
+        if (player.tickCount % 40 == 0) {
+            player.displayClientMessage(Component.literal(message).withStyle(color), true);
         }
     }
 }
