@@ -17,14 +17,18 @@ public final class SoulSiphon {
     public static final String SIPHON_DAMAGE_TAG = "DemonsBountySoulSiphonDamage";
     public static final int UNLOCK_LEVEL = 10;
     private static final double RANGE = 16.0;
-    private static final float DAMAGE_PER_PULSE = 1.0F;
+    private static final float DAMAGE_PER_BURST = 4.0F;
     private static final double SOULS_PER_DAMAGE = 0.5;
     private static final double TARGET_CONE_DOT = 0.966; // roughly 15 degrees
+    private static final double CLOSE_TARGET_CONE_DOT = 0.35;
+    private static final double CLOSE_TARGET_RANGE = 3.0;
+    private static final long TARGET_RESISTANCE_TICKS = 80L;
+    private static final String RESISTANCE_UNTIL_TAG = "DemonsBountySiphonResistanceUntil";
     private static final String FEEDBACK_TICK_TAG = "DemonsBountySiphonFeedbackTick";
 
     private SoulSiphon() {}
 
-    public static void tryPulse(ServerPlayer player) {
+    public static void tryCast(ServerPlayer player) {
         GluttonyData data = GluttonyData.of(player);
         if (!data.active()) {
             feedback(player, "Gluttony is dormant—consume the Cursed Apple first.", ChatFormatting.DARK_GRAY);
@@ -42,9 +46,18 @@ public final class SoulSiphon {
             return;
         }
 
+        long gameTime = player.level().getGameTime();
+        long resistantUntil = target.getPersistentData().getLong(RESISTANCE_UNTIL_TAG);
+        if (gameTime < resistantUntil) {
+            double seconds = (resistantUntil - gameTime) / 20.0;
+            player.displayClientMessage(Component.literal(String.format("That soul resists for %.1fs", seconds))
+                    .withStyle(ChatFormatting.RED), true);
+            return;
+        }
+
         float healthBefore = target.getHealth();
         target.getPersistentData().putBoolean(SIPHON_DAMAGE_TAG, true);
-        boolean hurt = target.hurt(player.damageSources().indirectMagic(player, player), DAMAGE_PER_PULSE);
+        boolean hurt = target.hurt(player.damageSources().indirectMagic(player, player), DAMAGE_PER_BURST);
         target.getPersistentData().remove(SIPHON_DAMAGE_TAG);
         if (!hurt) {
             feedback(player, "That soul resists the siphon.", ChatFormatting.RED);
@@ -53,8 +66,9 @@ public final class SoulSiphon {
 
         double damageDealt = Math.max(0.0, healthBefore - target.getHealth());
         if (damageDealt > 0.0) data.addSouls(damageDealt * SOULS_PER_DAMAGE);
+        target.getPersistentData().putLong(RESISTANCE_UNTIL_TAG, gameTime + TARGET_RESISTANCE_TICKS);
         spawnSoulTrail((ServerLevel) player.level(), target, player);
-        player.displayClientMessage(Component.literal(String.format("Siphoning %s  +%.2f souls",
+        player.displayClientMessage(Component.literal(String.format("Soul ripped from %s  +%.2f souls",
                 target.getName().getString(), damageDealt * SOULS_PER_DAMAGE)).withStyle(ChatFormatting.DARK_PURPLE), true);
     }
 
@@ -76,7 +90,9 @@ public final class SoulSiphon {
 
     private static boolean isInsideAimCone(Vec3 start, Vec3 look, LivingEntity entity) {
         Vec3 toward = entity.getBoundingBox().getCenter().subtract(start);
-        return toward.lengthSqr() <= RANGE * RANGE && toward.normalize().dot(look) >= TARGET_CONE_DOT;
+        double distance = toward.length();
+        double requiredDot = distance <= CLOSE_TARGET_RANGE ? CLOSE_TARGET_CONE_DOT : TARGET_CONE_DOT;
+        return distance <= RANGE && toward.normalize().dot(look) >= requiredDot;
     }
 
     private static double targetScore(Vec3 start, Vec3 look, LivingEntity entity) {
@@ -88,9 +104,9 @@ public final class SoulSiphon {
     public static void spawnSoulTrail(ServerLevel level, LivingEntity target, ServerPlayer player) {
         Vec3 from = target.getBoundingBox().getCenter();
         Vec3 to = player.getEyePosition().add(0.0, -0.35, 0.0);
-        for (int i = 0; i <= 6; i++) {
-            Vec3 point = from.lerp(to, i / 6.0);
-            level.sendParticles(ParticleTypes.SOUL, point.x, point.y, point.z, 1, 0.03, 0.03, 0.03, 0.01);
+        for (int i = 0; i <= 12; i++) {
+            Vec3 point = from.lerp(to, i / 12.0);
+            level.sendParticles(ParticleTypes.SOUL, point.x, point.y, point.z, 2, 0.04, 0.04, 0.04, 0.02);
         }
     }
 

@@ -18,7 +18,7 @@ public final class SoulSiphonPacket {
         NetworkEvent.Context context = contextSupplier.get();
         context.enqueueWork(() -> {
             ServerPlayer player = context.getSender();
-            if (player != null) SoulSiphon.tryPulse(player);
+            if (player != null) SoulSiphon.tryCast(player);
         });
         context.setPacketHandled(true);
     }

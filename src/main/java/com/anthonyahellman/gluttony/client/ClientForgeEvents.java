@@ -13,8 +13,6 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = GluttonyMod.MOD_ID, value = Dist.CLIENT)
 public final class ClientForgeEvents {
-    private static boolean wasSiphoning;
-
     private ClientForgeEvents() {}
 
     @SubscribeEvent
@@ -22,14 +20,9 @@ public final class ClientForgeEvents {
         if (event.phase != TickEvent.Phase.END) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.level == null || minecraft.isPaused()) return;
-        boolean siphoning = ClientModEvents.SOUL_SIPHON.isDown();
-        if (siphoning && !wasSiphoning) {
+        while (ClientModEvents.SOUL_SIPHON.consumeClick()) {
             minecraft.player.displayClientMessage(
-                    Component.literal("Soul Siphon engaged").withStyle(ChatFormatting.DARK_PURPLE), true);
-        }
-        wasSiphoning = siphoning;
-        if (!siphoning) return;
-        if (minecraft.player.tickCount % 10 == 0) {
+                    Component.literal("Soul Siphon").withStyle(ChatFormatting.DARK_PURPLE), true);
             ModNetwork.CHANNEL.sendToServer(new SoulSiphonPacket());
         }
     }
