@@ -12,7 +12,7 @@ import org.lwjgl.glfw.GLFW;
 @Mod.EventBusSubscriber(modid = GluttonyMod.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class ClientModEvents {
     public static final KeyMapping SOUL_SIPHON = new KeyMapping(
-            "key.demonsbountygluttony.soul_siphon",
+            "key.demonsbountygluttony.sin_ability",
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_G,
             "key.categories.demonsbountygluttony"

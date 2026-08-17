@@ -4,8 +4,6 @@ import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.network.ModNetwork;
 import com.anthonyahellman.gluttony.network.SoulSiphonPacket;
 import net.minecraft.client.Minecraft;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -21,8 +19,6 @@ public final class ClientForgeEvents {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.level == null || minecraft.isPaused()) return;
         while (ClientModEvents.SOUL_SIPHON.consumeClick()) {
-            minecraft.player.displayClientMessage(
-                    Component.literal("Soul Siphon").withStyle(ChatFormatting.DARK_PURPLE), true);
             ModNetwork.CHANNEL.sendToServer(new SoulSiphonPacket());
         }
     }

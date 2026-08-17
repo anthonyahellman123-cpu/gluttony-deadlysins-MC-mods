@@ -1,6 +1,6 @@
 package com.anthonyahellman.gluttony.network;
 
-import com.anthonyahellman.gluttony.gameplay.SoulSiphon;
+import com.anthonyahellman.gluttony.gameplay.PrideAbility;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
@@ -18,7 +18,7 @@ public final class SoulSiphonPacket {
         NetworkEvent.Context context = contextSupplier.get();
         context.enqueueWork(() -> {
             ServerPlayer player = context.getSender();
-            if (player != null) SoulSiphon.tryCast(player);
+            if (player != null) PrideAbility.tryCast(player);
         });
         context.setPacketHandled(true);
     }
