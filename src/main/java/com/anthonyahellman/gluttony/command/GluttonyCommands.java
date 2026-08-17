@@ -4,6 +4,7 @@ import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.data.GluttonyData;
 import com.anthonyahellman.gluttony.gameplay.GluttonyExtraction;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.DoubleArgumentType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -21,7 +22,27 @@ public final class GluttonyCommands {
     public static void register(RegisterCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
         dispatcher.register(Commands.literal("gluttony")
-                .then(Commands.literal("stats").executes(context -> showStats(context.getSource()))));
+                .then(Commands.literal("stats").executes(context -> showStats(context.getSource())))
+                .then(Commands.literal("grant")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.argument("souls", DoubleArgumentType.doubleArg(0.0))
+                                .executes(context -> grantSouls(
+                                        context.getSource(), DoubleArgumentType.getDouble(context, "souls"))))));
+    }
+
+    private static int grantSouls(CommandSourceStack source, double souls) {
+        final ServerPlayer player;
+        try {
+            player = source.getPlayerOrException();
+        } catch (Exception ignored) {
+            source.sendFailure(Component.literal("This command must be used by a player."));
+            return 0;
+        }
+        GluttonyData data = GluttonyData.of(player);
+        data.addSouls(souls);
+        source.sendSuccess(() -> Component.literal(String.format(
+                "Granted %.2f souls. Gluttony level: %d", souls, data.level())).withStyle(ChatFormatting.GOLD), false);
+        return 1;
     }
 
     private static int showStats(CommandSourceStack source) {
