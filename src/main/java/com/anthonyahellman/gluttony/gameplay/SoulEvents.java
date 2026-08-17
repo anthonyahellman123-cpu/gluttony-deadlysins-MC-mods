@@ -29,6 +29,10 @@ public final class SoulEvents {
         LivingEntity victim = event.getEntity();
         if (victim instanceof ServerPlayer) return;
 
+        // Soul Siphon awards souls as it deals damage, but never extracts stats or
+        // triggers the normal kill reward when its damage delivers the final blow.
+        if (victim.getPersistentData().getBoolean(SoulSiphon.SIPHON_DAMAGE_TAG)) return;
+
         GluttonyData data = GluttonyData.of(player);
         if (!data.active()) return;
 

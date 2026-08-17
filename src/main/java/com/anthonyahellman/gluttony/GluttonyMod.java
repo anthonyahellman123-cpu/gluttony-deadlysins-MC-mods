@@ -1,6 +1,7 @@
 package com.anthonyahellman.gluttony;
 
 import com.anthonyahellman.gluttony.registry.ModItems;
+import com.anthonyahellman.gluttony.network.ModNetwork;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -13,6 +14,7 @@ public final class GluttonyMod {
     public GluttonyMod() {
         var modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ModItems.ITEMS.register(modBus);
+        ModNetwork.register();
         modBus.addListener(this::addCreativeTabContents);
     }
 
