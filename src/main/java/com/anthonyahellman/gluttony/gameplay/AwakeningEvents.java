@@ -19,6 +19,7 @@ public final class AwakeningEvents {
 
         GluttonyData data = GluttonyData.of(player);
         if (!data.active() || !data.awakening()) return;
+        if (player.isCreative() || player.isSpectator()) return;
 
         FoodData food = player.getFoodData();
         food.setSaturation(0.0F);
