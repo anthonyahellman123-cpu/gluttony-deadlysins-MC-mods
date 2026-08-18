@@ -3,6 +3,7 @@ package com.anthonyahellman.gluttony.item;
 import com.anthonyahellman.gluttony.data.GluttonyData;
 import com.anthonyahellman.gluttony.data.SinData;
 import com.anthonyahellman.gluttony.gameplay.AbilityHudSync;
+import com.anthonyahellman.gluttony.gameplay.SoulEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -43,6 +44,7 @@ public final class CursedAppleItem extends Item {
         ItemStack result = super.finishUsingItem(stack, level, entity);
         if (!level.isClientSide && entity instanceof ServerPlayer player) {
             if (!SinData.tryChoose(player, SinData.NaturalSin.GLUTTONY)) return result;
+            SoulEvents.refreshAttributes(player);
             GluttonyData data = GluttonyData.of(player);
             if (!data.active()) {
                 data.beginAwakening();

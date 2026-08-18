@@ -7,21 +7,24 @@ public final class PrideData {
     private static final String ROOT = "RootsOfSinPride";
 
     public enum Trial {
-        ENDER_DRAGON("Ender Dragons", "EnderDragons", 12),
-        WITHER("Withers", "Withers", 8),
-        ELDER_GUARDIAN("Elder Guardians", "ElderGuardians", 4),
-        WARDEN("Wardens", "Wardens", 2);
+        ENDER_DRAGON("dragon", "Ender Dragons", "EnderDragons", 12),
+        WITHER("wither", "Withers", "Withers", 8),
+        ELDER_GUARDIAN("elder_guardian", "Elder Guardians", "ElderGuardians", 4),
+        WARDEN("warden", "Wardens", "Wardens", 2);
 
+        private final String commandName;
         private final String displayName;
         private final String key;
         private final int required;
 
-        Trial(String displayName, String key, int required) {
+        Trial(String commandName, String displayName, String key, int required) {
+            this.commandName = commandName;
             this.displayName = displayName;
             this.key = key;
             this.required = required;
         }
 
+        public String commandName() { return commandName; }
         public String displayName() { return displayName; }
         public int required() { return required; }
     }
@@ -51,6 +54,14 @@ public final class PrideData {
         if (old >= trial.required) return false;
         tag.putInt(trial.key, old + 1);
         return old + 1 == trial.required;
+    }
+
+    public void setCount(Trial trial, int count) {
+        tag.putInt(trial.key, Math.min(trial.required, Math.max(0, count)));
+    }
+
+    public void reset() {
+        for (Trial trial : Trial.values()) tag.remove(trial.key);
     }
 
     public int completedTrials() {

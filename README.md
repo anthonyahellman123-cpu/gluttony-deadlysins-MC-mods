@@ -21,4 +21,6 @@ The reusable Sin Ability HUD slot changes its icon and color for the player's aw
 
 Pride's Sol uses a dedicated solar apple texture with a white-gold radiant core and restrained amber-orange edges.
 
+Developer commands include `/sin clear`, Pride trial grant/complete/reset controls, and a full completion shortcut. Clearing a natural sin preserves its progression while immediately removing its active attributes and HUD state.
+
 Only one natural sin may be awakened per player. Optional mod integrations enhance classification but are never required for the base progression.

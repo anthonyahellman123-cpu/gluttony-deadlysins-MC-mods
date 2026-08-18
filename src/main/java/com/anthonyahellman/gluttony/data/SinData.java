@@ -34,6 +34,10 @@ public final class SinData {
         return true;
     }
 
+    public static void clear(ServerPlayer player) {
+        root(player).putString(NATURAL_SIN, NaturalSin.NONE.name());
+    }
+
     public static void copy(ServerPlayer oldPlayer, ServerPlayer newPlayer) {
         newPlayer.getPersistentData().put(ROOT, oldPlayer.getPersistentData().getCompound(ROOT).copy());
     }

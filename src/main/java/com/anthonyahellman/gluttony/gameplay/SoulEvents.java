@@ -97,9 +97,17 @@ public final class SoulEvents {
         }
     }
 
+    public static void refreshAttributes(ServerPlayer player) {
+        applyAttributes(player, GluttonyData.of(player));
+        PrideProgression.applyAttributes(player);
+    }
+
     private static void applyAttributes(ServerPlayer player, GluttonyData data) {
-        setModifier(player.getAttribute(Attributes.MAX_HEALTH), HEALTH_ID, "Gluttony consumed health", data.extractedHealth());
-        setModifier(player.getAttribute(Attributes.ATTACK_DAMAGE), ATTACK_ID, "Gluttony consumed attack", data.extractedAttack());
+        boolean gluttony = SinData.selected(player) == SinData.NaturalSin.GLUTTONY;
+        setModifier(player.getAttribute(Attributes.MAX_HEALTH), HEALTH_ID, "Gluttony consumed health",
+                gluttony ? data.extractedHealth() : 0.0);
+        setModifier(player.getAttribute(Attributes.ATTACK_DAMAGE), ATTACK_ID, "Gluttony consumed attack",
+                gluttony ? data.extractedAttack() : 0.0);
         if (player.getHealth() > player.getMaxHealth()) player.setHealth(player.getMaxHealth());
     }
 
