@@ -23,5 +23,8 @@ public final class GluttonyMod {
             event.accept(ModItems.CURSED_APPLE);
             event.accept(ModItems.PRIDE_SOL);
         }
+        if (event.getTabKey() == CreativeModeTabs.COMBAT) {
+            event.accept(ModItems.PRIDE_SPEAR);
+        }
     }
 }
