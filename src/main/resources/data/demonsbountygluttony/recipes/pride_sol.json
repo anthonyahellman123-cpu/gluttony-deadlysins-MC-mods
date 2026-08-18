@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " S ",
+    "SAS",
+    " S "
+  ],
+  "key": {
+    "S": { "item": "minecraft:nether_star" },
+    "A": { "item": "minecraft:apple" }
+  },
+  "result": {
+    "item": "demonsbountygluttony:pride_sol",
+    "count": 1
+  }
+}
