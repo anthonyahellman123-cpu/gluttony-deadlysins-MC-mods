@@ -17,11 +17,18 @@ public final class ClientModEvents {
             GLFW.GLFW_KEY_G,
             "key.categories.demonsbountygluttony"
     );
+    public static final KeyMapping SHADOW_STEP = new KeyMapping(
+            "key.demonsbountygluttony.sin_movement",
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_V,
+            "key.categories.demonsbountygluttony"
+    );
 
     private ClientModEvents() {}
 
     @SubscribeEvent
     public static void registerKeys(RegisterKeyMappingsEvent event) {
         event.register(SOUL_SIPHON);
+        event.register(SHADOW_STEP);
     }
 }

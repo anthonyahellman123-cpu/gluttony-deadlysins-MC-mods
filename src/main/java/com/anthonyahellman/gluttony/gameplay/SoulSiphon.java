@@ -51,6 +51,11 @@ public final class SoulSiphon {
             return;
         }
 
+        if (data.level() >= Devour.UNLOCK_LEVEL) {
+            Devour.tryConsume(player, target, false);
+            return;
+        }
+
         long gameTime = player.level().getGameTime();
         long resistantUntil = target.getPersistentData().getLong(RESISTANCE_UNTIL_TAG);
         if (gameTime < resistantUntil) {
@@ -77,7 +82,7 @@ public final class SoulSiphon {
                 target.getName().getString(), damageDealt * SOULS_PER_DAMAGE)).withStyle(ChatFormatting.DARK_PURPLE), true);
     }
 
-    private static LivingEntity findTarget(ServerPlayer player) {
+    static LivingEntity findTarget(ServerPlayer player) {
         Vec3 start = player.getEyePosition();
         Vec3 look = player.getViewVector(1.0F).normalize();
         AABB search = player.getBoundingBox().expandTowards(look.scale(RANGE)).inflate(1.0);

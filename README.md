@@ -11,6 +11,8 @@ A Forge 1.20.1 Minecraft mod built around accepting the sin of Gluttony, harvest
 
 Eating the apple begins a dangerous awakening: saturation is stripped away and hunger rapidly drains until the player secures their first non-player kill. Use `/gluttony stats` to inspect awakening state, progression, extraction efficiency, and consumed attributes.
 
+Gluttony level 5 unlocks Shadow Step on the separate Sin Movement key (V by default). Each cast costs one more soul when chained within three seconds, and a lethal strike refunds that cast without resetting escalation. At level 50, successful Shadow Step hits and the shared Sin Ability evolve into Devour, dealing a stronger soul burst and extracting a small permanent portion of each unique body. At level 100, Shadow Step forces Devour through that target's normal resistance window.
+
 ## Pride slice
 
 Pride is awakened by eating Pride's Sol, crafted from an apple and four Nether Stars. Pride deals reduced damage to ordinary creatures and increased damage to bosses. Its progression consists of four independent supremacy trials: 12 Ender Dragons, 8 Withers, 4 Elder Guardians, and 2 Wardens. Every recorded boss grants +2 maximum health and +1 base attack damage; completing a trial grants +10 health and +5 attack. Difficulty-weighted boss damage reaches 200% after all four trials.

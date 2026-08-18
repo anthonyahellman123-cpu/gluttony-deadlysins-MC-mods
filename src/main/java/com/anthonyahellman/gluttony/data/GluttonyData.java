@@ -52,6 +52,11 @@ public final class GluttonyData {
         return true;
     }
 
+    /** Returns spent souls without advancing lifetime progression. */
+    public void refundSouls(double amount) {
+        if (amount > 0) tag.putDouble(CURRENT_SOULS, currentSouls() + amount);
+    }
+
     public void addExtractedStats(double health, double attack) {
         tag.putDouble(HEALTH, extractedHealth() + health);
         tag.putDouble(ATTACK, extractedAttack() + attack);
