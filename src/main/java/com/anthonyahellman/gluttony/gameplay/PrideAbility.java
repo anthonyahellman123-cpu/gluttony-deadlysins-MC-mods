@@ -13,8 +13,10 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
@@ -201,7 +203,25 @@ public final class PrideAbility {
         if (entity.level().isClientSide) return;
         if (entity.level().getGameTime() >= entity.getPersistentData().getLong(GROUNDED_UNTIL)) return;
         Vec3 motion = entity.getDeltaMovement();
-        entity.setDeltaMovement(motion.x * 0.8, Math.min(-0.35, motion.y), motion.z * 0.8);
+
+        boolean supported = entity.onGround()
+                || !entity.level().noCollision(entity, entity.getBoundingBox().move(0.0, -0.45, 0.0));
+        if (entity.getType() == EntityType.ENDER_DRAGON) {
+            int surface = entity.level().getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                    entity.getBlockX(), entity.getBlockZ());
+            double safeBottom = surface + 0.5;
+            double currentBottom = entity.getBoundingBox().minY;
+            if (currentBottom <= safeBottom) {
+                if (currentBottom < safeBottom) {
+                    entity.setPos(entity.getX(), entity.getY() + safeBottom - currentBottom, entity.getZ());
+                }
+                supported = true;
+            }
+        }
+
+        double vertical = supported ? 0.0 : Math.min(-0.35, motion.y);
+        double horizontalDrag = supported ? 0.55 : 0.8;
+        entity.setDeltaMovement(motion.x * horizontalDrag, vertical, motion.z * horizontalDrag);
         entity.hurtMarked = true;
         entity.fallDistance = 0.0F;
     }
