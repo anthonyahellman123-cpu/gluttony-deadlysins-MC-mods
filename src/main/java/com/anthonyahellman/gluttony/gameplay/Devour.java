@@ -38,18 +38,23 @@ public final class Devour {
         data.addSouls(dealt);
         target.getPersistentData().putLong(resistanceKey, now + TARGET_RESISTANCE_TICKS);
 
-        String consumedKey = "RootsOfSinDevouredBy_" + player.getStringUUID();
-        if (!target.getPersistentData().getBoolean(consumedKey)) {
-            double fraction = GluttonyExtraction.statFraction(data.level()) * 0.10;
-            data.addExtractedStats(attribute(target, Attributes.MAX_HEALTH) * fraction,
-                    Math.max(0.0, attribute(target, Attributes.ATTACK_DAMAGE)) * fraction);
-            target.getPersistentData().putBoolean(consumedKey, true);
-            SoulEvents.refreshAttributes(player);
-        }
+        extractUniqueStats(player, target, 0.10);
 
         SoulSiphon.spawnSoulTrail(player.serverLevel(), target, player);
         player.displayClientMessage(Component.literal(String.format("DEVOUR  %s  +%.2f souls",
                 target.getName().getString(), dealt)).withStyle(ChatFormatting.DARK_RED), true);
+        return true;
+    }
+
+    public static boolean extractUniqueStats(ServerPlayer player, LivingEntity target, double scale) {
+        String consumedKey = "RootsOfSinDevouredBy_" + player.getStringUUID();
+        if (target.getPersistentData().getBoolean(consumedKey)) return false;
+        GluttonyData data = GluttonyData.of(player);
+        double fraction = GluttonyExtraction.statFraction(data.level()) * scale;
+        data.addExtractedStats(attribute(target, Attributes.MAX_HEALTH) * fraction,
+                Math.max(0.0, attribute(target, Attributes.ATTACK_DAMAGE)) * fraction);
+        target.getPersistentData().putBoolean(consumedKey, true);
+        SoulEvents.refreshAttributes(player);
         return true;
     }
 

@@ -11,7 +11,9 @@ A Forge 1.20.1 Minecraft mod built around accepting the sin of Gluttony, harvest
 
 Eating the apple begins a dangerous awakening: saturation is stripped away and hunger rapidly drains until the player secures their first non-player kill. Use `/gluttony stats` to inspect awakening state, progression, extraction efficiency, and consumed attributes.
 
-Gluttony level 5 unlocks Shadow Step on the separate Sin Movement key (V by default). Each cast costs one more soul when chained within three seconds, and a lethal strike refunds that cast without resetting escalation. At level 50, successful Shadow Step hits and the shared Sin Ability evolve into Devour, dealing a stronger soul burst and extracting a small permanent portion of each unique body. At level 100, Shadow Step forces Devour through that target's normal resistance window.
+Gluttony uses one evolving Sin Ability key. Level 10 unlocks Soul Siphon, a single-target soul-only burst. Level 50 evolves it into Devour, which deals a stronger burst and permanently extracts part of each unique body. Level 100 evolves it into Beelzebub, a toggleable eight-block Cloud of Despair that consumes current souls while damaging, siphoning, and extracting nearby living creatures.
+
+The Sin Stats key (H by default) toggles an in-game Gluttony panel showing level, current and lifetime souls, the active ability stage, and permanently consumed health and attack.
 
 ## Pride slice
 

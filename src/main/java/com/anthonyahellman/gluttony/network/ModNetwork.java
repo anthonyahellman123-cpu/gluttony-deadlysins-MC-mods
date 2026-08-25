@@ -21,7 +21,5 @@ public final class ModNetwork {
                 SoulSiphonPacket::encode, SoulSiphonPacket::decode, SoulSiphonPacket::handle);
         CHANNEL.registerMessage(1, AbilityStatePacket.class,
                 AbilityStatePacket::encode, AbilityStatePacket::decode, AbilityStatePacket::handle);
-        CHANNEL.registerMessage(2, ShadowStepPacket.class,
-                ShadowStepPacket::encode, ShadowStepPacket::decode, ShadowStepPacket::handle);
     }
 }

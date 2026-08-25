@@ -30,6 +30,14 @@ public final class AbilityHudOverlay {
     private static boolean evolved;
     private static int cooldownTicks;
     private static int recastTicks;
+    private static int level;
+    private static double currentSouls;
+    private static double lifetimeSouls;
+    private static double extractedHealth;
+    private static double extractedAttack;
+    private static int nextLevelSouls;
+    private static boolean auraActive;
+    private static boolean statsVisible;
 
     private AbilityHudOverlay() {}
 
@@ -39,6 +47,17 @@ public final class AbilityHudOverlay {
         evolved = packet.evolved();
         cooldownTicks = Math.max(0, packet.cooldownTicks());
         recastTicks = Math.max(0, packet.recastTicks());
+        level = packet.level();
+        currentSouls = packet.currentSouls();
+        lifetimeSouls = packet.lifetimeSouls();
+        extractedHealth = packet.extractedHealth();
+        extractedAttack = packet.extractedAttack();
+        nextLevelSouls = packet.nextLevelSouls();
+        auraActive = packet.auraActive();
+    }
+
+    public static void toggleStats() {
+        statsVisible = !statsVisible;
     }
 
     @SubscribeEvent
@@ -77,6 +96,8 @@ public final class AbilityHudOverlay {
         graphics.pose().translate(0.0F, 0.0F, 300.0F);
         renderState(graphics, minecraft, x, y, size);
         graphics.pose().popPose();
+
+        if (sin == 1 && statsVisible) renderGluttonyStats(graphics, minecraft);
     }
 
     private static void renderState(GuiGraphics graphics, Minecraft minecraft, int x, int y, int size) {
@@ -99,9 +120,43 @@ public final class AbilityHudOverlay {
             drawRadial(graphics, x, y, size, fraction, 0xB0000000);
             String time = String.format("%.1f", cooldownTicks / 20.0);
             drawCentered(graphics, minecraft, time, x + size / 2, y + 8, 0xFFFFFFFF);
+        } else if (sin == 1 && auraActive) {
+            graphics.fill(x, y, x + size, y + size, 0x70330044);
+            drawCentered(graphics, minecraft, "ON", x + size / 2, y + 8, 0xFFFF7777);
         } else if (evolved) {
             graphics.fill(x + size - 5, y + 1, x + size - 1, y + 5, 0xFFFFF1A8);
         }
+    }
+
+    private static void renderGluttonyStats(GuiGraphics graphics, Minecraft minecraft) {
+        int width = 190;
+        int height = 100;
+        int x = 10;
+        int y = graphics.guiHeight() / 2 - height / 2;
+        graphics.fill(x, y, x + width, y + height, 0xD0100714);
+        graphics.fill(x, y, x + 3, y + height, 0xFF7A1622);
+        graphics.fill(x, y, x + width, y + 2, 0xFF9B2335);
+
+        graphics.drawString(minecraft.font, "THE ROOTS OF SIN — GLUTTONY", x + 9, y + 8, 0xFFFFB8B8, true);
+        graphics.drawString(minecraft.font, "Level " + level + "  •  " + stageName(), x + 9, y + 22,
+                auraActive ? 0xFFFF5555 : 0xFFE093A0, false);
+        graphics.drawString(minecraft.font, String.format("Souls: %.2f", currentSouls), x + 9, y + 38,
+                0xFFD9B3FF, false);
+        String lifetime = level >= 100 ? String.format("Lifetime: %.2f  •  MAX", lifetimeSouls)
+                : String.format("Lifetime: %.2f / %d", lifetimeSouls, nextLevelSouls);
+        graphics.drawString(minecraft.font, lifetime, x + 9, y + 50, 0xFFC7A7D9, false);
+        graphics.drawString(minecraft.font, String.format("Consumed Health: +%.2f", extractedHealth),
+                x + 9, y + 66, 0xFFE6C6C6, false);
+        graphics.drawString(minecraft.font, String.format("Consumed Attack: +%.2f", extractedAttack),
+                x + 9, y + 78, 0xFFE6C6C6, false);
+        graphics.drawString(minecraft.font, "H to close", x + width - 52, y + height - 11, 0xFF777777, false);
+    }
+
+    private static String stageName() {
+        if (level >= 100) return auraActive ? "BEELZEBUB ACTIVE" : "BEELZEBUB";
+        if (level >= 50) return "DEVOUR";
+        if (level >= 10) return "SOUL SIPHON";
+        return "DORMANT ABILITY";
     }
 
     private static void drawCentered(GuiGraphics graphics, Minecraft minecraft, String text,

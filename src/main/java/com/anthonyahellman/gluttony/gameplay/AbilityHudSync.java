@@ -17,9 +17,25 @@ public final class AbilityHudSync {
         boolean evolved = false;
         int cooldown = 0;
         int recast = 0;
+        int level = 0;
+        double currentSouls = 0.0;
+        double lifetimeSouls = 0.0;
+        double extractedHealth = 0.0;
+        double extractedAttack = 0.0;
+        int nextLevelSouls = 0;
+        boolean auraActive = false;
 
         if (sin == SinData.NaturalSin.GLUTTONY) {
-            unlocked = GluttonyData.of(player).level() >= SoulSiphon.UNLOCK_LEVEL;
+            GluttonyData gluttony = GluttonyData.of(player);
+            level = gluttony.level();
+            currentSouls = gluttony.currentSouls();
+            lifetimeSouls = gluttony.lifetimeSouls();
+            extractedHealth = gluttony.extractedHealth();
+            extractedAttack = gluttony.extractedAttack();
+            nextLevelSouls = GluttonyData.soulsRequiredForLevel(Math.min(100, level + 1));
+            unlocked = level >= SoulSiphon.UNLOCK_LEVEL;
+            evolved = level >= Devour.UNLOCK_LEVEL;
+            auraActive = Beelzebub.active(player);
         } else if (sin == SinData.NaturalSin.PRIDE) {
             PrideData pride = PrideData.of(player);
             unlocked = pride.totalBossKills() >= PrideAbility.UNLOCK_KILLS;
@@ -29,6 +45,8 @@ public final class AbilityHudSync {
         }
 
         ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
-                new AbilityStatePacket(sin.ordinal(), unlocked, evolved, cooldown, recast));
+                new AbilityStatePacket(sin.ordinal(), unlocked, evolved, cooldown, recast,
+                        level, currentSouls, lifetimeSouls, extractedHealth, extractedAttack,
+                        nextLevelSouls, auraActive));
     }
 }

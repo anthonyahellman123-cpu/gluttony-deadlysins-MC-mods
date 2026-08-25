@@ -64,11 +64,9 @@ public final class GluttonyCommands {
         source.sendSuccess(() -> Component.literal(String.format("Consumed Stats: +%.2f health | +%.2f attack", data.extractedHealth(), data.extractedAttack())), false);
         source.sendSuccess(() -> Component.literal("Soul Siphon: " + (data.level() >= 10 ? "Unlocked" : "Locked (Level 10)"))
                 .withStyle(data.level() >= 10 ? ChatFormatting.DARK_PURPLE : ChatFormatting.DARK_GRAY), false);
-        source.sendSuccess(() -> Component.literal("Shadow Step: " + (data.level() >= 5 ? "Unlocked" : "Locked (Level 5)"))
-                .withStyle(data.level() >= 5 ? ChatFormatting.DARK_PURPLE : ChatFormatting.DARK_GRAY), false);
         source.sendSuccess(() -> Component.literal("Devour: " + (data.level() >= 50 ? "Unlocked" : "Locked (Level 50)"))
                 .withStyle(data.level() >= 50 ? ChatFormatting.DARK_RED : ChatFormatting.DARK_GRAY), false);
-        source.sendSuccess(() -> Component.literal("Perfect Devour: " + (data.level() >= 100 ? "Unlocked" : "Locked (Level 100)"))
+        source.sendSuccess(() -> Component.literal("Beelzebub: " + (data.level() >= 100 ? "Unlocked" : "Locked (Level 100)"))
                 .withStyle(data.level() >= 100 ? ChatFormatting.GOLD : ChatFormatting.DARK_GRAY), false);
         return 1;
     }

@@ -45,6 +45,11 @@ public final class SoulSiphon {
         }
         if (!player.isAlive() || player.isSpectator()) return;
 
+        if (data.level() >= Beelzebub.UNLOCK_LEVEL) {
+            Beelzebub.toggle(player);
+            return;
+        }
+
         LivingEntity target = findTarget(player);
         if (target == null) {
             feedback(player, "Aim at one living creature within 16 blocks.", ChatFormatting.GRAY);
