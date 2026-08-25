@@ -3,7 +3,6 @@ package com.anthonyahellman.gluttony.client;
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.network.ModNetwork;
 import com.anthonyahellman.gluttony.network.SoulSiphonPacket;
-import com.anthonyahellman.gluttony.network.ShadowStepPacket;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
@@ -21,9 +20,6 @@ public final class ClientForgeEvents {
         if (minecraft.player == null || minecraft.level == null || minecraft.isPaused()) return;
         while (ClientModEvents.SOUL_SIPHON.consumeClick()) {
             ModNetwork.CHANNEL.sendToServer(new SoulSiphonPacket());
-        }
-        while (ClientModEvents.SHADOW_STEP.consumeClick()) {
-            ModNetwork.CHANNEL.sendToServer(new ShadowStepPacket());
         }
     }
 }
