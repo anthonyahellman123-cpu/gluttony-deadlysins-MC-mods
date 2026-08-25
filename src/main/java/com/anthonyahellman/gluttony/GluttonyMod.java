@@ -19,12 +19,10 @@ public final class GluttonyMod {
     }
 
     private void addCreativeTabContents(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTabKey() == CreativeModeTabs.FOOD_AND_DRINKS) {
+        if (event.getTabKey() == CreativeModeTabs.FOOD_AND_DRINKS
+                || event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
             event.accept(ModItems.CURSED_APPLE);
             event.accept(ModItems.PRIDE_SOL);
-        }
-        if (event.getTabKey() == CreativeModeTabs.COMBAT) {
-            event.accept(ModItems.PRIDE_SPEAR);
         }
     }
 }

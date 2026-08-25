@@ -70,9 +70,13 @@ public final class AbilityHudOverlay {
     @SubscribeEvent
     public static void render(RenderGuiOverlayEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null || minecraft.options.hideGui || sin <= 0) return;
+        if (minecraft.player == null || minecraft.options.hideGui) return;
 
         GuiGraphics graphics = event.getGuiGraphics();
+        if (sin <= 0) {
+            if (statsVisible) renderDormantStats(graphics, minecraft);
+            return;
+        }
         int size = 24;
         int x = graphics.guiWidth() / 2 + 98;
         int y = graphics.guiHeight() - 28;
@@ -149,6 +153,21 @@ public final class AbilityHudOverlay {
                 x + 9, y + 66, 0xFFE6C6C6, false);
         graphics.drawString(minecraft.font, String.format("Consumed Attack: +%.2f", extractedAttack),
                 x + 9, y + 78, 0xFFE6C6C6, false);
+        graphics.drawString(minecraft.font, "H to close", x + width - 52, y + height - 11, 0xFF777777, false);
+    }
+
+    private static void renderDormantStats(GuiGraphics graphics, Minecraft minecraft) {
+        int width = 190;
+        int height = 62;
+        int x = 10;
+        int y = graphics.guiHeight() / 2 - height / 2;
+        graphics.fill(x, y, x + width, y + height, 0xD0100714);
+        graphics.fill(x, y, x + 3, y + height, 0xFF555555);
+        graphics.drawString(minecraft.font, "THE ROOTS OF SIN", x + 9, y + 8, 0xFFBBBBBB, true);
+        graphics.drawString(minecraft.font, "No natural sin has awakened.", x + 9, y + 25,
+                0xFF999999, false);
+        graphics.drawString(minecraft.font, "Consume the Cursed Apple for Gluttony.", x + 9, y + 38,
+                0xFFB57A86, false);
         graphics.drawString(minecraft.font, "H to close", x + width - 52, y + height - 11, 0xFF777777, false);
     }
 
