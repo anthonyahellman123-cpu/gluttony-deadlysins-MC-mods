@@ -37,17 +37,19 @@ public final class SoulEvents {
 
         boolean siphonKill = victim.getPersistentData().getBoolean(SoulSiphon.SIPHON_DAMAGE_TAG);
         int oldLevel = data.level();
+        double soulsGained = 0.0;
 
-        // Siphon already awards its bonus souls per damage pulse. Its killing blow
-        // stabilizes awakening but deliberately grants no normal souls or stats.
+        // Siphon/Devour award their own souls during the cast. Their killing blow
+        // still stabilizes awakening and produces the soul trail, but does not
+        // double-dip the normal kill reward or full kill-stat extraction.
         if (!siphonKill) {
             double maxHealth = attributeValueOrZero(victim, Attributes.MAX_HEALTH);
             double armor = attributeValueOrZero(victim, Attributes.ARMOR);
             double attack = attributeValueOrZero(victim, Attributes.ATTACK_DAMAGE);
-            double souls = Math.max(1.0, maxHealth * 0.5 + armor * 0.75) * GluttonyExtraction.soulMultiplier(data.level());
+            soulsGained = Math.max(1.0, maxHealth * 0.5 + armor * 0.75) * GluttonyExtraction.soulMultiplier(data.level());
             double fraction = GluttonyExtraction.statFraction(data.level());
 
-            data.addSouls(souls);
+            data.addSouls(soulsGained);
             data.addExtractedStats(maxHealth * fraction, Math.max(0, attack) * fraction);
             applyAttributes(player, data);
         }
@@ -59,10 +61,26 @@ public final class SoulEvents {
             player.getFoodData().setFoodLevel(Math.max(6, player.getFoodData().getFoodLevel()));
             player.displayClientMessage(Component.literal("Gluttony has tasted its first soul.").withStyle(ChatFormatting.DARK_RED), false);
             player.displayClientMessage(Component.literal("The hunger settles—but it will never leave.").withStyle(ChatFormatting.GRAY), false);
+        } else if (!siphonKill && soulsGained > 0.0) {
+            player.displayClientMessage(Component.literal(String.format("Consumed %s  +%.2f souls",
+                    victim.getName().getString(), soulsGained)).withStyle(ChatFormatting.DARK_PURPLE), true);
         }
 
-        if (data.level() > oldLevel) {
-            player.displayClientMessage(Component.literal("GLUTTONY LEVEL " + data.level()).withStyle(ChatFormatting.GOLD), false);
+        int newLevel = data.level();
+        if (newLevel > oldLevel) {
+            player.displayClientMessage(Component.literal("GLUTTONY LEVEL " + newLevel).withStyle(ChatFormatting.GOLD), false);
+            announceUnlocks(player, oldLevel, newLevel);
+        }
+    }
+
+    private static void announceUnlocks(ServerPlayer player, int oldLevel, int newLevel) {
+        if (oldLevel < SoulSiphon.UNLOCK_LEVEL && newLevel >= SoulSiphon.UNLOCK_LEVEL) {
+            player.displayClientMessage(Component.literal("SOUL SIPHON AWAKENED").withStyle(ChatFormatting.DARK_PURPLE), false);
+            player.displayClientMessage(Component.literal("Your hunger can now tear at a living soul directly.").withStyle(ChatFormatting.GRAY), false);
+        }
+        if (oldLevel < Devour.UNLOCK_LEVEL && newLevel >= Devour.UNLOCK_LEVEL) {
+            player.displayClientMessage(Component.literal("SOUL SIPHON HAS BECOME DEVOUR").withStyle(ChatFormatting.DARK_RED), false);
+            player.displayClientMessage(Component.literal("Flesh, soul, strength—Gluttony no longer distinguishes between them.").withStyle(ChatFormatting.GRAY), false);
         }
     }
 
