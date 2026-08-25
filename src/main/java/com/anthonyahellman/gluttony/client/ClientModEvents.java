@@ -17,11 +17,18 @@ public final class ClientModEvents {
             GLFW.GLFW_KEY_G,
             "key.categories.demonsbountygluttony"
     );
+    public static final KeyMapping SIN_STATUS = new KeyMapping(
+            "key.demonsbountygluttony.sin_status",
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_K,
+            "key.categories.demonsbountygluttony"
+    );
 
     private ClientModEvents() {}
 
     @SubscribeEvent
     public static void registerKeys(RegisterKeyMappingsEvent event) {
         event.register(SOUL_SIPHON);
+        event.register(SIN_STATUS);
     }
 }
