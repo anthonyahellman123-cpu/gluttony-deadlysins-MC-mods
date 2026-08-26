@@ -22,6 +22,14 @@ public final class ClientForgeEvents {
         if (event.phase != TickEvent.Phase.END) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.level == null || minecraft.isPaused()) return;
+        if (AbilityHudOverlay.greedAwakened()) {
+            int unshakable = GreedClientState.get().premiumKnockback();
+            int maximumVisibleHurtTicks = Math.round(minecraft.player.hurtDuration
+                    * Math.max(0.0F, 1.0F - unshakable * 0.10F));
+            if (minecraft.player.hurtTime > maximumVisibleHurtTicks) {
+                minecraft.player.hurtTime = maximumVisibleHurtTicks;
+            }
+        }
         while (ClientModEvents.SIN_ABILITY.consumeClick()) {
             if (minecraft.screen instanceof PouchOfMammonScreen) minecraft.player.closeContainer();
             else if (minecraft.screen == null) ModNetwork.CHANNEL.sendToServer(new SinAbilityPacket());
@@ -44,6 +52,8 @@ public final class ClientForgeEvents {
         double stack = AvariceAppraisals.stackValue(event.getItemStack());
         event.getToolTip().add(Component.literal(String.format("Appraised: %.2f Avarice each", each))
                 .withStyle(ChatFormatting.GOLD));
+        event.getToolTip().add(Component.literal(AvariceAppraisals.tier(event.getItemStack()).displayName())
+                .withStyle(ChatFormatting.DARK_GREEN));
         if (event.getItemStack().getCount() > 1) {
             event.getToolTip().add(Component.literal(String.format("Stack value: %.2f Avarice", stack))
                     .withStyle(ChatFormatting.DARK_GREEN));

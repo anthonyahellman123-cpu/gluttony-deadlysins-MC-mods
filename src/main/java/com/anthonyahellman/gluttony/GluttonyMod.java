@@ -33,6 +33,7 @@ public final class GluttonyMod {
         }
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
             event.accept(ModBlocks.COFFER_OF_AVARICE_ITEM);
+            event.accept(ModBlocks.GREEDS_VAULT_ITEM);
         }
     }
 }

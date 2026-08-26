@@ -94,11 +94,15 @@ public final class SinMenuScreen extends Screen {
         int y = top + 39;
         graphics.drawString(font, "FINANCIAL POWER", x, y, 0xFFFFDD70, false);
         graphics.drawString(font, "Avarice: " + format(state.avarice()), x, y + 17, 0xFF72E29B, false);
-        graphics.drawString(font, "Greed Max HP: TBD gain (" + state.coreHealth() + " purchases)",
+        double appreciation = 1.0 + state.assetAppreciation() * 0.10;
+        graphics.drawString(font, "Greed Max HP: +" + format(state.coreHealth() * 2.0 * appreciation)
+                        + " (" + state.coreHealth() + " purchases)",
                 x, y + 34, 0xFFD9C9A9, false);
-        graphics.drawString(font, "Greed Attack: TBD gain (" + state.coreAttack() + " purchases)",
+        graphics.drawString(font, "Greed Attack: +" + format(state.coreAttack() * appreciation)
+                        + " (" + state.coreAttack() + " purchases)",
                 x, y + 48, 0xFFD9C9A9, false);
-        graphics.drawString(font, "Greed Armor: TBD gain (" + state.coreArmor() + " purchases)",
+        graphics.drawString(font, "Greed Armor: +" + format(state.coreArmor() * 0.5 * appreciation)
+                        + " (" + state.coreArmor() + " purchases)",
                 x, y + 62, 0xFFD9C9A9, false);
         graphics.drawString(font, "Lifetime earned: " + format(state.lifetimeEarned()), x, y + 84,
                 0xFFA9D6B5, false);

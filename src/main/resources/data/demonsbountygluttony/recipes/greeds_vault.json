@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["GCD", "CMC", "DCG"],
+  "key": {
+    "G": { "item": "minecraft:gold_block" },
+    "D": { "item": "minecraft:diamond_block" },
+    "C": { "item": "minecraft:chest" },
+    "M": { "item": "demonsbountygluttony:coin_of_mammon" }
+  },
+  "result": { "item": "demonsbountygluttony:greeds_vault", "count": 1 }
+}

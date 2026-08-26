@@ -73,10 +73,12 @@ public final class GreedData {
 
     public void addAvarice(double amount, IncomeSource source) {
         if (amount <= 0.0) return;
-        tag.putDouble(AVARICE, avarice() + amount);
-        tag.putDouble(LIFETIME_EARNED, lifetimeEarned() + amount);
-        if (source == IncomeSource.VAULT) tag.putDouble(VAULT_INCOME, vaultIncome() + amount);
-        if (source == IncomeSource.COFFER) tag.putDouble(COFFER_INCOME, cofferIncome() + amount);
+        double received = source == IncomeSource.OTHER
+                ? amount : amount * (1.0 + premiumAvariceYield() * 0.05);
+        tag.putDouble(AVARICE, avarice() + received);
+        tag.putDouble(LIFETIME_EARNED, lifetimeEarned() + received);
+        if (source == IncomeSource.VAULT) tag.putDouble(VAULT_INCOME, vaultIncome() + received);
+        if (source == IncomeSource.COFFER) tag.putDouble(COFFER_INCOME, cofferIncome() + received);
         if (source == IncomeSource.MARKET) tag.putLong(MARKET_ACTIVITY, marketActivity() + 1L);
     }
 
@@ -162,6 +164,88 @@ public final class GreedData {
 
     public double currentClaimCost() {
         return 100_000.0 * Math.pow(2.0, Math.max(0, claimsInWindow()));
+    }
+
+    public boolean buyCoreHealth() { return buyCore(CORE_HEALTH, coreHealthPurchases()); }
+    public boolean buyCoreAttack() { return buyCore(CORE_ATTACK, coreAttackPurchases()); }
+    public boolean buyCoreArmor() { return buyCore(CORE_ARMOR, coreArmorPurchases()); }
+
+    public boolean buyPremiumMovement() { return buyPremium(PREMIUM_MOVEMENT, premiumMovement()); }
+    public boolean buyPremiumAttackSpeed() { return buyPremium(PREMIUM_ATTACK_SPEED, premiumAttackSpeed()); }
+    public boolean buyPremiumLuck() { return buyPremium(PREMIUM_LUCK, premiumLuck()); }
+    public boolean buyPremiumKnockback() { return buyPremium(PREMIUM_KNOCKBACK, premiumKnockbackResistance()); }
+    public boolean buyPremiumYield() { return buyPremium(PREMIUM_YIELD, premiumAvariceYield()); }
+
+    public boolean buyCompoundInterest() {
+        return buyPinnacle(PINNACLE_COMPOUND, compoundInterestLevel(), pinnacleCost(compoundInterestLevel()));
+    }
+
+    public boolean buyAssetAppreciation() {
+        return buyPinnacle(PINNACLE_APPRECIATION, assetAppreciationLevel(),
+                pinnacleCost(assetAppreciationLevel()));
+    }
+
+    public boolean buyContract() {
+        int level = contractLevel();
+        if (level >= 5) return false;
+        double cost = contractUpgradeCost(level);
+        if (!spendAvarice(cost)) return false;
+        tag.putInt(PINNACLE_CONTRACT, level + 1);
+        return true;
+    }
+
+    public static double premiumCost(int currentLevel) {
+        return 5_000.0 * Math.pow(1.5, Math.max(0, currentLevel) / 2);
+    }
+
+    public static double pinnacleCost(int currentLevel) {
+        return 250_000.0 * Math.pow(2.0, Math.max(0, currentLevel));
+    }
+
+    public static double contractUpgradeCost(int currentLevel) {
+        return 100_000.0 * Math.pow(1.5, Math.max(0, currentLevel));
+    }
+
+    public long contractWindowTicks() {
+        return switch (contractLevel()) {
+            case 1 -> 72_000L;
+            case 2 -> 63_000L;
+            case 3 -> 54_000L;
+            case 4 -> 45_000L;
+            case 5 -> 36_000L;
+            default -> 0L;
+        };
+    }
+
+    public void refreshClaimWindow(long gameTime) {
+        if (claimsInWindow() > 0 && claimResetAt() > 0L && gameTime >= claimResetAt()) {
+            tag.putInt(CLAIMS_IN_WINDOW, 0);
+            tag.putLong(CLAIM_RESET_AT, 0L);
+        }
+    }
+
+    public void recordContractClaim(long gameTime) {
+        tag.putInt(CLAIMS_IN_WINDOW, claimsInWindow() + 1);
+        tag.putLong(CONTRACT_CLAIMS, contractClaims() + 1L);
+        tag.putLong(CLAIM_RESET_AT, gameTime + contractWindowTicks());
+    }
+
+    private boolean buyCore(String key, int purchases) {
+        if (!spendAvarice(coreNextCost(purchases))) return false;
+        tag.putInt(key, purchases + 1);
+        return true;
+    }
+
+    private boolean buyPremium(String key, int level) {
+        if (level >= 10 || !spendAvarice(premiumCost(level))) return false;
+        tag.putInt(key, level + 1);
+        return true;
+    }
+
+    private boolean buyPinnacle(String key, int level, double cost) {
+        if (level >= 5 || !spendAvarice(cost)) return false;
+        tag.putInt(key, level + 1);
+        return true;
     }
 
     private int nonNegativeInt(String key) { return Math.max(0, tag.getInt(key)); }

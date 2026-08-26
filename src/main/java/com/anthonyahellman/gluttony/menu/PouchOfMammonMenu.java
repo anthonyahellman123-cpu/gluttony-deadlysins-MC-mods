@@ -2,6 +2,8 @@ package com.anthonyahellman.gluttony.menu;
 
 import com.anthonyahellman.gluttony.data.GreedData;
 import com.anthonyahellman.gluttony.gameplay.AbilityHudSync;
+import com.anthonyahellman.gluttony.gameplay.GreedProgression;
+import com.anthonyahellman.gluttony.data.SinData;
 import com.anthonyahellman.gluttony.greed.AvariceAppraisals;
 import com.anthonyahellman.gluttony.registry.ModMenus;
 import net.minecraft.ChatFormatting;
@@ -19,6 +21,17 @@ import net.minecraft.world.item.ItemStack;
 public final class PouchOfMammonMenu extends AbstractContainerMenu {
     public static final int DIVEST_BUTTON = 0;
     public static final int MARKET_BUTTON = 1;
+    public static final int CORE_HEALTH_BUTTON = 10;
+    public static final int CORE_ATTACK_BUTTON = 11;
+    public static final int CORE_ARMOR_BUTTON = 12;
+    public static final int PREMIUM_MOVEMENT_BUTTON = 20;
+    public static final int PREMIUM_ATTACK_SPEED_BUTTON = 21;
+    public static final int PREMIUM_LUCK_BUTTON = 22;
+    public static final int PREMIUM_UNSHAKABLE_BUTTON = 23;
+    public static final int PREMIUM_YIELD_BUTTON = 24;
+    public static final int COMPOUND_INTEREST_BUTTON = 30;
+    public static final int ASSET_APPRECIATION_BUTTON = 31;
+    public static final int CONTRACT_BUTTON = 32;
     public static final int POUCH_SLOTS = 9;
 
     private final Container pouch;
@@ -64,8 +77,14 @@ public final class PouchOfMammonMenu extends AbstractContainerMenu {
             }
             return true;
         }
-        if (id != DIVEST_BUTTON || !(player instanceof ServerPlayer serverPlayer)
+        if (!(player instanceof ServerPlayer serverPlayer)
                 || !(pouch instanceof PouchInventory inventory)) return false;
+        if (SinData.selected(serverPlayer) != SinData.NaturalSin.GREED) return false;
+
+        if (id >= CORE_HEALTH_BUTTON && id <= CONTRACT_BUTTON) {
+            return purchase(serverPlayer, inventory.greed(), id);
+        }
+        if (id != DIVEST_BUTTON) return false;
 
         if (inventory.isEmpty()) {
             serverPlayer.displayClientMessage(Component.literal("The divestment grid is empty.")
@@ -98,6 +117,33 @@ public final class PouchOfMammonMenu extends AbstractContainerMenu {
         AbilityHudSync.send(serverPlayer);
         serverPlayer.displayClientMessage(Component.literal(String.format(
                 "DIVESTED %d ASSETS  +%.2f AVARICE", count, total))
+                .withStyle(ChatFormatting.GOLD), true);
+        return true;
+    }
+
+    private boolean purchase(ServerPlayer player, GreedData greed, int id) {
+        boolean purchased = switch (id) {
+            case CORE_HEALTH_BUTTON -> greed.buyCoreHealth();
+            case CORE_ATTACK_BUTTON -> greed.buyCoreAttack();
+            case CORE_ARMOR_BUTTON -> greed.buyCoreArmor();
+            case PREMIUM_MOVEMENT_BUTTON -> greed.buyPremiumMovement();
+            case PREMIUM_ATTACK_SPEED_BUTTON -> greed.buyPremiumAttackSpeed();
+            case PREMIUM_LUCK_BUTTON -> greed.buyPremiumLuck();
+            case PREMIUM_UNSHAKABLE_BUTTON -> greed.buyPremiumKnockback();
+            case PREMIUM_YIELD_BUTTON -> greed.buyPremiumYield();
+            case COMPOUND_INTEREST_BUTTON -> greed.buyCompoundInterest();
+            case ASSET_APPRECIATION_BUTTON -> greed.buyAssetAppreciation();
+            case CONTRACT_BUTTON -> greed.buyContract();
+            default -> false;
+        };
+        if (!purchased) {
+            player.displayClientMessage(Component.literal("Purchase blocked: insufficient Avarice or maximum level reached.")
+                    .withStyle(ChatFormatting.RED), true);
+            return true;
+        }
+        GreedProgression.applyAttributes(player);
+        AbilityHudSync.send(player);
+        player.displayClientMessage(Component.literal("INVESTMENT ACQUIRED")
                 .withStyle(ChatFormatting.GOLD), true);
         return true;
     }

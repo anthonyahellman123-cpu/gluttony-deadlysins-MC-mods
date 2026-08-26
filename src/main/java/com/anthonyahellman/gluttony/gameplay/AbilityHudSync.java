@@ -63,6 +63,7 @@ public final class AbilityHudSync {
 
     private static void sendGreed(ServerPlayer player) {
         GreedData greed = GreedData.of(player);
+        greed.refreshClaimWindow(player.serverLevel().getGameTime());
         ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new GreedStatePacket(
                 greed.avarice(), greed.lifetimeEarned(), greed.lifetimeSpent(),
                 greed.assetsDivested(), greed.vaultIncome(), greed.cofferIncome(),

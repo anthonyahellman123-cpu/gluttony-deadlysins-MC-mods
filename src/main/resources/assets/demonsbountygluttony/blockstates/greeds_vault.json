@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "demonsbountygluttony:block/greeds_vault" },
+    "facing=east":  { "model": "demonsbountygluttony:block/greeds_vault", "y": 90 },
+    "facing=south": { "model": "demonsbountygluttony:block/greeds_vault", "y": 180 },
+    "facing=west":  { "model": "demonsbountygluttony:block/greeds_vault", "y": 270 }
+  }
+}

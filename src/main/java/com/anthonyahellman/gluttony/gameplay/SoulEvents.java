@@ -78,6 +78,7 @@ public final class SoulEvents {
         event.getOriginal().invalidateCaps();
         applyAttributes(newPlayer, GluttonyData.of(newPlayer));
         PrideProgression.applyAttributes(newPlayer);
+        GreedProgression.applyAttributes(newPlayer);
         AbilityHudSync.send(newPlayer);
     }
 
@@ -86,6 +87,7 @@ public final class SoulEvents {
         if (event.getEntity() instanceof ServerPlayer player) {
             applyAttributes(player, GluttonyData.of(player));
             PrideProgression.applyAttributes(player);
+            GreedProgression.applyAttributes(player);
             AbilityHudSync.send(player);
             AbilityHudSync.sendAppraisals(player);
         }
@@ -96,6 +98,7 @@ public final class SoulEvents {
         if (event.getEntity() instanceof ServerPlayer player) {
             applyAttributes(player, GluttonyData.of(player));
             PrideProgression.applyAttributes(player);
+            GreedProgression.applyAttributes(player);
             AbilityHudSync.send(player);
         }
     }
@@ -103,6 +106,7 @@ public final class SoulEvents {
     public static void refreshAttributes(ServerPlayer player) {
         applyAttributes(player, GluttonyData.of(player));
         PrideProgression.applyAttributes(player);
+        GreedProgression.applyAttributes(player);
     }
 
     private static void applyAttributes(ServerPlayer player, GluttonyData data) {

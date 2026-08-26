@@ -3,6 +3,7 @@ package com.anthonyahellman.gluttony.registry;
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.menu.CofferOfAvariceMenu;
 import com.anthonyahellman.gluttony.menu.PouchOfMammonMenu;
+import com.anthonyahellman.gluttony.menu.GreedsVaultMenu;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraftforge.common.extensions.IForgeMenuType;
 import net.minecraftforge.registries.DeferredRegister;
@@ -18,6 +19,9 @@ public final class ModMenus {
 
     public static final RegistryObject<MenuType<PouchOfMammonMenu>> POUCH_OF_MAMMON =
             MENUS.register("pouch_of_mammon", () -> IForgeMenuType.create(PouchOfMammonMenu::new));
+
+    public static final RegistryObject<MenuType<GreedsVaultMenu>> GREEDS_VAULT =
+            MENUS.register("greeds_vault", () -> IForgeMenuType.create(GreedsVaultMenu::new));
 
     private ModMenus() {}
 }

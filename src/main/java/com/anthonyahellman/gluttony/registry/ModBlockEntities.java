@@ -2,6 +2,7 @@ package com.anthonyahellman.gluttony.registry;
 
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.block.entity.CofferOfAvariceBlockEntity;
+import com.anthonyahellman.gluttony.block.entity.GreedsVaultBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -15,6 +16,11 @@ public final class ModBlockEntities {
             BLOCK_ENTITIES.register("coffer_of_avarice",
                     () -> BlockEntityType.Builder.of(CofferOfAvariceBlockEntity::new,
                             ModBlocks.COFFER_OF_AVARICE.get()).build(null));
+
+    public static final RegistryObject<BlockEntityType<GreedsVaultBlockEntity>> GREEDS_VAULT =
+            BLOCK_ENTITIES.register("greeds_vault",
+                    () -> BlockEntityType.Builder.of(GreedsVaultBlockEntity::new,
+                            ModBlocks.GREEDS_VAULT.get()).build(null));
 
     private ModBlockEntities() {}
 }

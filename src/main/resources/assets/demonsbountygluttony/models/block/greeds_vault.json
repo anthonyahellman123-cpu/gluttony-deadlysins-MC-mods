@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "down": "demonsbountygluttony:block/coffer_metal",
+    "up": "demonsbountygluttony:block/coffer_top",
+    "north": "demonsbountygluttony:block/coffer_front",
+    "south": "demonsbountygluttony:block/coffer_side",
+    "west": "demonsbountygluttony:block/coffer_side",
+    "east": "demonsbountygluttony:block/coffer_side",
+    "particle": "demonsbountygluttony:block/coffer_side"
+  }
+}

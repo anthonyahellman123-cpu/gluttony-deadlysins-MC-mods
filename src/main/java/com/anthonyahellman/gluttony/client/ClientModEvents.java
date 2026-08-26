@@ -41,5 +41,7 @@ public final class ClientModEvents {
                 CofferOfAvariceScreen::new));
         event.enqueueWork(() -> MenuScreens.register(ModMenus.POUCH_OF_MAMMON.get(),
                 PouchOfMammonScreen::new));
+        event.enqueueWork(() -> MenuScreens.register(ModMenus.GREEDS_VAULT.get(),
+                GreedsVaultScreen::new));
     }
 }

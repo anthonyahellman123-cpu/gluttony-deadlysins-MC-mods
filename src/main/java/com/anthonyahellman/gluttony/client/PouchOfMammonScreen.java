@@ -2,6 +2,7 @@ package com.anthonyahellman.gluttony.client;
 
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.greed.AvariceAppraisals;
+import com.anthonyahellman.gluttony.data.GreedData;
 import com.anthonyahellman.gluttony.menu.PouchOfMammonMenu;
 import com.anthonyahellman.gluttony.network.GreedStatePacket;
 import com.anthonyahellman.gluttony.registry.ModItems;
@@ -51,6 +52,17 @@ public final class PouchOfMammonScreen extends AbstractContainerScreen<PouchOfMa
                                 PouchOfMammonMenu.MARKET_BUTTON);
                     }
                 }).bounds(leftPos + 236, topPos + 221, 286, 20).build());
+        addBuyButton(PouchOfMammonMenu.CORE_HEALTH_BUTTON, 59);
+        addBuyButton(PouchOfMammonMenu.CORE_ATTACK_BUTTON, 76);
+        addBuyButton(PouchOfMammonMenu.CORE_ARMOR_BUTTON, 93);
+        addBuyButton(PouchOfMammonMenu.PREMIUM_MOVEMENT_BUTTON, 132);
+        addBuyButton(PouchOfMammonMenu.PREMIUM_ATTACK_SPEED_BUTTON, 143);
+        addBuyButton(PouchOfMammonMenu.PREMIUM_LUCK_BUTTON, 154);
+        addBuyButton(PouchOfMammonMenu.PREMIUM_UNSHAKABLE_BUTTON, 165);
+        addBuyButton(PouchOfMammonMenu.PREMIUM_YIELD_BUTTON, 176);
+        addBuyButton(PouchOfMammonMenu.COMPOUND_INTEREST_BUTTON, 207);
+        addBuyButton(PouchOfMammonMenu.ASSET_APPRECIATION_BUTTON, 218);
+        addBuyButton(PouchOfMammonMenu.CONTRACT_BUTTON, 229);
     }
 
     @Override
@@ -92,7 +104,7 @@ public final class PouchOfMammonScreen extends AbstractContainerScreen<PouchOfMa
                 coreCost(state.coreArmor()));
 
         line(graphics, left + 13 + LEFT_CONTENT_INSET, top + 113, left + 221, GOLD);
-        graphics.drawString(font, "PREMIUM INVESTMENTS — ROSTER TBD", ledgerX, top + 118,
+        graphics.drawString(font, "PREMIUM INVESTMENTS", ledgerX, top + 118,
                 0xFFFFC761, false);
         premiumRow(graphics, ledgerX, top + 132, "MOVEMENT", state.premiumMovement());
         premiumRow(graphics, ledgerX, top + 143, "ATTACK SPEED", state.premiumAttackSpeed());
@@ -102,9 +114,12 @@ public final class PouchOfMammonScreen extends AbstractContainerScreen<PouchOfMa
 
         line(graphics, left + 13 + LEFT_CONTENT_INSET, top + 190, left + 221, GOLD);
         graphics.drawString(font, "PINNACLE ASSETS", ledgerX, top + 195, 0xFFFFC761, false);
-        pinnacleRow(graphics, ledgerX, top + 207, "COMPOUND INTEREST", state.compoundInterest(), true);
-        pinnacleRow(graphics, ledgerX, top + 218, "ASSET APPRECIATION", state.assetAppreciation(), true);
-        pinnacleRow(graphics, ledgerX, top + 229, "CONTRACT OF MAMMON", state.contractLevel(), false);
+        pinnacleRow(graphics, ledgerX, top + 207, "COMPOUND INTEREST", state.compoundInterest(),
+                state.compoundInterest() >= 5 ? "MAX" : compactPinnacleCost(state.compoundInterest()));
+        pinnacleRow(graphics, ledgerX, top + 218, "ASSET APPRECIATION", state.assetAppreciation(),
+                state.assetAppreciation() >= 5 ? "MAX" : compactPinnacleCost(state.assetAppreciation()));
+        pinnacleRow(graphics, ledgerX, top + 229, "CONTRACT OF MAMMON", state.contractLevel(),
+                state.contractLevel() >= 5 ? "MAX" : compactCost(GreedData.contractUpgradeCost(state.contractLevel())));
 
         // Pouch inventory and the player's inventory remain visible together.
         graphics.drawString(font, "DIVEST ASSETS", left + 248, top + 10, BRIGHT_GOLD, false);
@@ -137,7 +152,7 @@ public final class PouchOfMammonScreen extends AbstractContainerScreen<PouchOfMa
         if (state.contractLevel() <= 0) {
             graphics.drawString(font, "CONTRACT OF MAMMON: NOT OWNED", left + 245, top + 178,
                     0xFFE9B4A9, false);
-            graphics.drawString(font, "Acquisition cost: TBD", left + 245, top + 193,
+            graphics.drawString(font, "Acquisition cost: 100,000", left + 245, top + 193,
                     0xFF9E8C7E, false);
         } else {
             graphics.drawString(font, "CURRENT CLAIM: " + format(state.currentClaimCost()),
@@ -179,10 +194,13 @@ public final class PouchOfMammonScreen extends AbstractContainerScreen<PouchOfMa
 
     private void coreRow(GuiGraphics graphics, int x, int y, String name, int owned, double nextCost) {
         graphics.drawString(font, name, x, y, 0xFFE8D8BD, false);
-        graphics.drawString(font, "+TBD", x + 76, y, 0xFFAA7770, false);
+        double appreciation = 1.0 + GreedClientState.get().assetAppreciation() * 0.10;
+        String bonus = name.equals("MAX HEALTH") ? "+" + format(owned * 2.0 * appreciation) + " HP"
+                : name.equals("ATTACK DAMAGE") ? "+" + format(owned * appreciation)
+                : "+" + format(owned * 0.5 * appreciation);
+        graphics.drawString(font, bonus, x + 76, y, EMERALD, false);
         graphics.drawString(font, Integer.toString(owned), x + 116, y, 0xFFD7C29A, false);
         graphics.drawString(font, format(nextCost), x + 144, y, 0xFFBDAA82, false);
-        disabledBuy(graphics, x + 184, y - 2);
     }
 
     private void premiumRow(GuiGraphics graphics, int x, int y, String name, int level) {
@@ -190,22 +208,12 @@ public final class PouchOfMammonScreen extends AbstractContainerScreen<PouchOfMa
         graphics.drawString(font, level + "/10", x + 111, y, 0xFFAA9A80, false);
         graphics.drawString(font, level >= 10 ? "MAX" : format(premiumCost(level)), x + 143, y,
                 0xFF9E8E74, false);
-        graphics.drawString(font, "LOCK", x + 184, y, 0xFF9A665F, false);
     }
 
-    private void pinnacleRow(GuiGraphics graphics, int x, int y, String name, int level,
-                             boolean priceConfirmed) {
+    private void pinnacleRow(GuiGraphics graphics, int x, int y, String name, int level, String cost) {
         graphics.drawString(font, name, x, y, 0xFFD7C7AA, false);
         graphics.drawString(font, level + "/5", x + 122, y, level > 0 ? BRIGHT_GOLD : 0xFF8B7D69, false);
-        graphics.drawString(font, priceConfirmed && level < 5 ? compactPinnacleCost(level) : "TBD",
-                x + 153, y, 0xFF9E8E74, false);
-        graphics.drawString(font, "LOCK", x + 184, y, 0xFF9A665F, false);
-    }
-
-    private void disabledBuy(GuiGraphics graphics, int x, int y) {
-        graphics.fill(x, y, x + 25, y + 12, 0xFF493B31);
-        graphics.fill(x + 1, y + 1, x + 24, y + 11, 0xFF211A17);
-        graphics.drawString(font, "BUY", x + 4, y + 2, 0xFF8A7770, false);
+        graphics.drawString(font, cost, x + 153, y, 0xFF9E8E74, false);
     }
 
     private static double coreCost(int purchases) {
@@ -224,8 +232,25 @@ public final class PouchOfMammonScreen extends AbstractContainerScreen<PouchOfMa
 
     private static String contractWindow(int level) {
         if (level == 1) return "60:00";
+        if (level == 2) return "52:30";
+        if (level == 3) return "45:00";
+        if (level == 4) return "37:30";
         if (level == 5) return "30:00";
-        return "TBD";
+        return "--";
+    }
+
+    private void addBuyButton(int id, int relativeY) {
+        addRenderableWidget(Button.builder(Component.literal("BUY"), button -> {
+            if (minecraft != null && minecraft.gameMode != null) {
+                minecraft.gameMode.handleInventoryButtonClick(menu.containerId, id);
+            }
+        }).bounds(leftPos + 15 + LEFT_CONTENT_INSET + 184, topPos + relativeY - 2, 25, 12).build());
+    }
+
+    private static String compactCost(double cost) {
+        if (cost >= 1_000_000.0) return String.format("%.1fm", cost / 1_000_000.0);
+        if (cost >= 1_000.0) return String.format("%.1fk", cost / 1_000.0);
+        return format(cost);
     }
 
     private static String format(double value) {
