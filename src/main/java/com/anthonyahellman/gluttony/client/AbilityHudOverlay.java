@@ -62,6 +62,17 @@ public final class AbilityHudOverlay {
         statsVisible = !statsVisible;
     }
 
+    static int sinId() { return sin; }
+    static boolean abilityUnlocked() { return unlocked; }
+    static boolean fullyEvolved() { return evolved; }
+    static int sinLevel() { return level; }
+    static double souls() { return currentSouls; }
+    static double lifetimeSouls() { return lifetimeSouls; }
+    static double consumedHealth() { return extractedHealth; }
+    static double consumedAttack() { return extractedAttack; }
+    static boolean auraActive() { return auraActive; }
+    static double avarice() { return avarice; }
+
     public static boolean greedAwakened() {
         return sin == 3;
     }
@@ -79,10 +90,7 @@ public final class AbilityHudOverlay {
         if (minecraft.player == null || minecraft.options.hideGui) return;
 
         GuiGraphics graphics = event.getGuiGraphics();
-        if (sin <= 0) {
-            if (statsVisible) renderDormantStats(graphics, minecraft);
-            return;
-        }
+        if (sin <= 0) return;
         int size = 24;
         int x = graphics.guiWidth() / 2 + 98;
         int y = graphics.guiHeight() - 28;
@@ -108,8 +116,6 @@ public final class AbilityHudOverlay {
         renderState(graphics, minecraft, x, y, size);
         graphics.pose().popPose();
 
-        if (sin == 1 && statsVisible) renderGluttonyStats(graphics, minecraft);
-        if (sin == 3 && statsVisible) renderGreedStats(graphics, minecraft);
     }
 
     private static void renderState(GuiGraphics graphics, Minecraft minecraft, int x, int y, int size) {

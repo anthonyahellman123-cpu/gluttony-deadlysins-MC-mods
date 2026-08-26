@@ -24,16 +24,9 @@ public final class PrideEvents {
     public static void onLivingHurt(LivingHurtEvent event) {
         if (!(event.getSource().getEntity() instanceof ServerPlayer player)) return;
         if (SinData.selected(player) != SinData.NaturalSin.PRIDE) return;
+        if (player.getPersistentData().getBoolean(PrideAbility.SLAM_DAMAGE_TAG)) return;
         float multiplier = NON_BOSS_DAMAGE_MULTIPLIER;
         if (BossClassifier.isBoss(event.getEntity())) {
-            if (PrideData.of(player).fullyAwakened()
-                    && player.getPersistentData().getBoolean(PrideAbility.ABILITY_STRIKE_TAG)) {
-                float percent = player.getPersistentData().getBoolean(PrideAbility.FOLLOW_UP_STRIKE_TAG)
-                        ? 0.02F : 0.04F;
-                float healthBasis = player.getPersistentData().getBoolean(PrideAbility.FOLLOW_UP_STRIKE_TAG)
-                        ? event.getEntity().getMaxHealth() : event.getEntity().getHealth();
-                event.setAmount(event.getAmount() + healthBasis * percent);
-            }
             multiplier = (float) (BOSS_DAMAGE_MULTIPLIER + PrideData.of(player).bossDamageBonus());
         }
         event.setAmount(event.getAmount() * multiplier);

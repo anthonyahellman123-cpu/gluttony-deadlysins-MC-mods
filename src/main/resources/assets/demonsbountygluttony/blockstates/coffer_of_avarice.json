@@ -1,5 +1,8 @@
 {
   "variants": {
-    "": { "model": "demonsbountygluttony:block/coffer_of_avarice" }
+    "facing=north": { "model": "demonsbountygluttony:block/coffer_of_avarice" },
+    "facing=east": { "model": "demonsbountygluttony:block/coffer_of_avarice", "y": 90 },
+    "facing=south": { "model": "demonsbountygluttony:block/coffer_of_avarice", "y": 180 },
+    "facing=west": { "model": "demonsbountygluttony:block/coffer_of_avarice", "y": 270 }
   }
 }

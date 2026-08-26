@@ -27,6 +27,9 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.util.Comparator;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 
 @Mod.EventBusSubscriber(modid = GluttonyMod.MOD_ID)
@@ -34,6 +37,7 @@ public final class PrideAbility {
     public static final int UNLOCK_KILLS = 4;
     public static final String ABILITY_STRIKE_TAG = "RootsOfSinPrideAbilityStrike";
     public static final String FOLLOW_UP_STRIKE_TAG = "RootsOfSinPrideFollowUpStrike";
+    public static final String SLAM_DAMAGE_TAG = "RootsOfSinPrideSlamDamage";
 
     private static final String DASH_TICKS = "RootsOfSinPrideDashTicks";
     private static final String DASH_DIRECTION_X = "RootsOfSinPrideDashX";
@@ -50,6 +54,8 @@ public final class PrideAbility {
     private static final int RECAST_WINDOW = 20;
     private static final int RECOVERY_TICKS = 60;
     private static final double DASH_SPEED = 2.15;
+    private static final int PULSE_INTERVAL = 6;
+    private static final List<SlamPulse> PENDING_PULSES = new ArrayList<>();
 
     private PrideAbility() {}
 
@@ -61,7 +67,7 @@ public final class PrideAbility {
 
         PrideData data = PrideData.of(player);
         if (data.totalBossKills() < UNLOCK_KILLS) {
-            feedback(player, "Sovereign's Advance unlocks after four conquered bosses.", ChatFormatting.GOLD);
+            feedback(player, "Sovereign's Slam unlocks after four conquered bosses.", ChatFormatting.GOLD);
             AbilityHudSync.send(player);
             return;
         }
@@ -90,7 +96,7 @@ public final class PrideAbility {
         beginDash(player, player.getLookAngle().normalize(), false);
         player.getPersistentData().putLong(COOLDOWN_UNTIL, now + RECOVERY_TICKS);
         player.displayClientMessage(Component.literal(data.fullyAwakened()
-                ? "ABSOLUTE DOMINATION" : "SOVEREIGN'S ADVANCE").withStyle(ChatFormatting.GOLD), true);
+                ? "ABSOLUTE DOMINATION" : "SOVEREIGN'S SLAM").withStyle(ChatFormatting.GOLD), true);
         AbilityHudSync.send(player);
     }
 
@@ -151,7 +157,7 @@ public final class PrideAbility {
         var tag = player.getPersistentData();
         tag.putBoolean(ABILITY_STRIKE_TAG, true);
         tag.putBoolean(FOLLOW_UP_STRIKE_TAG, followUp);
-        player.attack(target);
+        slam(player, target, data);
         tag.remove(ABILITY_STRIKE_TAG);
         tag.remove(FOLLOW_UP_STRIKE_TAG);
 
@@ -178,6 +184,62 @@ public final class PrideAbility {
             }
         }
     }
+
+    private static void slam(ServerPlayer player, LivingEntity target, PrideData data) {
+        applySlamDamage(player, target, target.getMaxHealth() * 0.25F, 0);
+        long now = player.level().getGameTime();
+        PENDING_PULSES.add(new SlamPulse(player.serverLevel(), player.getUUID(), target.getUUID(),
+                now + PULSE_INTERVAL, 0.25F, 1));
+        if (data.complete(PrideData.Trial.WARDEN)) {
+            PENDING_PULSES.add(new SlamPulse(player.serverLevel(), player.getUUID(), target.getUUID(),
+                    now + PULSE_INTERVAL * 2L, 0.10F, 2));
+            PENDING_PULSES.add(new SlamPulse(player.serverLevel(), player.getUUID(), target.getUUID(),
+                    now + PULSE_INTERVAL * 3L, 0.05F, 3));
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLevelTick(TickEvent.LevelTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || !(event.level instanceof ServerLevel level)) return;
+        long now = level.getGameTime();
+        Iterator<SlamPulse> iterator = PENDING_PULSES.iterator();
+        while (iterator.hasNext()) {
+            SlamPulse pulse = iterator.next();
+            if (pulse.level() != level || pulse.executeAt() > now) continue;
+            iterator.remove();
+            Entity playerEntity = level.getEntity(pulse.playerId());
+            Entity targetEntity = level.getEntity(pulse.targetId());
+            if (!(playerEntity instanceof ServerPlayer player)
+                    || !(targetEntity instanceof LivingEntity target) || !target.isAlive()) continue;
+            float missingHealth = Math.max(0.0F, target.getMaxHealth() - target.getHealth());
+            applySlamDamage(player, target, missingHealth * pulse.missingHealthFraction(), pulse.index());
+        }
+    }
+
+    private static void applySlamDamage(ServerPlayer player, LivingEntity target, float damage, int pulse) {
+        if (damage <= 0.0F || !target.isAlive()) return;
+        player.getPersistentData().putBoolean(SLAM_DAMAGE_TAG, true);
+        target.invulnerableTime = 0;
+        target.hurt(player.damageSources().playerAttack(player), damage);
+        player.getPersistentData().remove(SLAM_DAMAGE_TAG);
+
+        ServerLevel level = player.serverLevel();
+        if (pulse == 0) {
+            level.sendParticles(ParticleTypes.EXPLOSION, target.getX(), target.getY() + 0.6, target.getZ(),
+                    3, 0.35, 0.25, 0.35, 0.0);
+            level.playSound(null, target.blockPosition(), SoundEvents.GENERIC_EXPLODE,
+                    SoundSource.PLAYERS, 0.8F, 0.65F);
+        } else {
+            level.sendParticles(pulse == 1 ? ParticleTypes.END_ROD : ParticleTypes.SOUL_FIRE_FLAME,
+                    target.getX(), target.getY() + 0.7, target.getZ(), 12,
+                    0.4, 0.35, 0.4, 0.035);
+            level.playSound(null, target.blockPosition(), SoundEvents.RESPAWN_ANCHOR_DEPLETE,
+                    SoundSource.PLAYERS, 0.45F, 1.35F - pulse * 0.15F);
+        }
+    }
+
+    private record SlamPulse(ServerLevel level, UUID playerId, UUID targetId, long executeAt,
+                             float missingHealthFraction, int index) {}
 
     private static void impact(ServerPlayer player, LivingEntity directTarget) {
         ServerLevel level = player.serverLevel();

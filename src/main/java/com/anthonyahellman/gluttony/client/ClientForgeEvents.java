@@ -26,7 +26,8 @@ public final class ClientForgeEvents {
             ModNetwork.CHANNEL.sendToServer(new SoulSiphonPacket());
         }
         while (ClientModEvents.SIN_STATS.consumeClick()) {
-            AbilityHudOverlay.toggleStats();
+            if (minecraft.screen instanceof SinMenuScreen) minecraft.setScreen(null);
+            else if (minecraft.screen == null) minecraft.setScreen(new SinMenuScreen());
         }
     }
 
