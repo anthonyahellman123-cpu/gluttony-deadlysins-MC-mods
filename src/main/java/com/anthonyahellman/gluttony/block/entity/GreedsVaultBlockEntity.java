@@ -116,9 +116,7 @@ public final class GreedsVaultBlockEntity extends BlockEntity implements Contain
 
     public static double stackEfficiency(ItemStack stack) {
         if (stack.isEmpty()) return 0.0;
-        if (stack.getCount() >= stack.getMaxStackSize()) return 1.0;
-        if (stack.getMaxStackSize() != 64) return 0.0;
-        return Math.min(1.0, Math.ceil(stack.getCount() / 8.0) * 0.125);
+        return Math.min(1.0, stack.getCount() / 64.0);
     }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, GreedsVaultBlockEntity vault) {
@@ -152,7 +150,20 @@ public final class GreedsVaultBlockEntity extends BlockEntity implements Contain
         return true;
     }
 
-    public void dropContents(Level level, BlockPos pos) { Containers.dropContents(level, pos, this); clearContent(); }
+    public void dropContents(Level level, BlockPos pos) {
+        for (ItemStack invested : items) {
+            int remaining = invested.getCount();
+            int normalMaximum = Math.max(1, invested.getMaxStackSize());
+            while (remaining > 0) {
+                ItemStack returned = invested.copy();
+                int amount = Math.min(remaining, normalMaximum);
+                returned.setCount(amount);
+                Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), returned);
+                remaining -= amount;
+            }
+        }
+        clearContent();
+    }
 
     @Override protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);

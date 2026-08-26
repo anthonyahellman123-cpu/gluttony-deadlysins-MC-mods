@@ -81,8 +81,14 @@ The full locked vanilla anchor table is installed in `AvariceAppraisals`.
 - Higher rows may hold lower-tier items.
 - Different item IDs in a row add diversification: 3 unique +2.5 points, 5 +5, 7 +7.5, 9 +10.
   NBT, names, and enchantments do not make duplicate IDs unique.
-- Normal 64-stack items use eight fullness stages at each eight-item boundary. A full stack is 100% efficient.
-- Partial-stack scaling for naturally non-64-stack items remains TBD; only a full natural stack receives income.
+- Every Vault position has a custom 64-unit investment capacity regardless of the item's normal Minecraft stack size.
+  This rule is Vault-only and never changes normal inventories.
+- Fullness and yield scale linearly from invested quantity: 1 item is 1/64, 16 is 25%, 32 is 50%, 48 is 75%,
+  and 64 is 100%. A Vault "full stack" always means 64 invested units.
+- The Vault appraises only the top-level item. Shulker contents, backpacks, bundles, stored fluids/energy, nested
+  inventories, and similar contained resources contribute no additional value.
+- Withdrawals and block breaking split invested quantities back into legal vanilla-sized stacks before they leave
+  the Vault.
 
 Recipe:
 

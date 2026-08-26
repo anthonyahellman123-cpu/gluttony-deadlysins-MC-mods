@@ -29,6 +29,7 @@ import java.util.Map;
 public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
     private static final Gson GSON = new GsonBuilder().create();
     private static final Map<ResourceLocation, Double> ANCHORS = createAnchors();
+    private static volatile Map<ResourceLocation, Double> fixedValues = ANCHORS;
     private static volatile Map<ResourceLocation, Double> values = ANCHORS;
 
     public enum AssetTier {
@@ -88,17 +89,19 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
 
     public static synchronized void deriveReliableCraftingValues(RecipeManager recipes,
                                                                   RegistryAccess registryAccess) {
-        Map<ResourceLocation, Double> derived = new HashMap<>(values);
+        Map<ResourceLocation, Double> fixed = fixedValues;
+        Map<ResourceLocation, Double> derived = new HashMap<>(fixed);
         boolean changed;
         int passes = 0;
         do {
             changed = false;
+            Map<ResourceLocation, Double> candidates = new HashMap<>();
             for (Recipe<?> recipe : recipes.getRecipes()) {
                 if (recipe.getType() != RecipeType.CRAFTING || recipe.isSpecial()) continue;
                 ItemStack result = recipe.getResultItem(registryAccess);
                 if (result.isEmpty()) continue;
                 ResourceLocation resultId = BuiltInRegistries.ITEM.getKey(result.getItem());
-                if (derived.containsKey(resultId)) continue;
+                if (fixed.containsKey(resultId)) continue;
                 double ingredientTotal = 0.0;
                 boolean reliable = true;
                 for (Ingredient ingredient : recipe.getIngredients()) {
@@ -120,7 +123,13 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
                     ingredientTotal += commonValue;
                 }
                 if (reliable && ingredientTotal > 0.0) {
-                    derived.put(resultId, ingredientTotal / Math.max(1, result.getCount()));
+                    candidates.merge(resultId, ingredientTotal / Math.max(1, result.getCount()), Math::min);
+                }
+            }
+            for (Map.Entry<ResourceLocation, Double> candidate : candidates.entrySet()) {
+                double old = derived.getOrDefault(candidate.getKey(), Double.POSITIVE_INFINITY);
+                if (candidate.getValue() + 0.0001 < old) {
+                    derived.put(candidate.getKey(), candidate.getValue());
                     changed = true;
                 }
             }
@@ -145,7 +154,8 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
                         json.get("value").getAsDouble());
             }
         }
-        values = Map.copyOf(loaded);
+        fixedValues = Map.copyOf(loaded);
+        values = fixedValues;
     }
 
     private static void putIfValid(Map<ResourceLocation, Double> target, ResourceLocation itemId, double value) {

@@ -10,6 +10,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerData;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -91,13 +92,13 @@ public final class GreedsVaultMenu extends AbstractContainerMenu {
             ItemStack existing = vault.getItem(slot);
             if (!existing.isEmpty() && ItemStack.isSameItemSameTags(existing, stack)
                     && vault.canPlaceItem(slot, stack)) {
-                int amount = Math.min(stack.getCount(), existing.getMaxStackSize() - existing.getCount());
+                int amount = Math.min(stack.getCount(), 64 - existing.getCount());
                 if (amount > 0) { existing.grow(amount); stack.shrink(amount); vault.setChanged(); moved = true; }
             }
         }
         for (int slot = 0; slot < unlockedSlots() && !stack.isEmpty(); slot++) {
             if (vault.getItem(slot).isEmpty() && vault.canPlaceItem(slot, stack)) {
-                int amount = Math.min(stack.getCount(), stack.getMaxStackSize());
+                int amount = Math.min(stack.getCount(), 64);
                 ItemStack inserted = stack.copy(); inserted.setCount(amount);
                 vault.setItem(slot, inserted); stack.shrink(amount); moved = true;
             }
@@ -111,5 +112,25 @@ public final class GreedsVaultMenu extends AbstractContainerMenu {
             return getContainerSlot() < unlockedSlots() && vault.canPlaceItem(getContainerSlot(), stack);
         }
         @Override public boolean mayPickup(Player player) { return getContainerSlot() < unlockedSlots(); }
+        @Override public int getMaxStackSize() { return 64; }
+        @Override public int getMaxStackSize(ItemStack stack) { return 64; }
+        @Override public ItemStack remove(int amount) {
+            ItemStack current = getItem();
+            return super.remove(Math.min(amount, Math.max(1, current.getMaxStackSize())));
+        }
+    }
+
+    @Override public void clicked(int slotId, int dragType, ClickType clickType, Player player) {
+        if (slotId >= 0 && slotId < GreedsVaultBlockEntity.SIZE) {
+            ItemStack invested = slots.get(slotId).getItem();
+            if (!invested.isEmpty() && invested.getCount() > invested.getMaxStackSize()
+                    && (clickType == ClickType.SWAP || clickType == ClickType.THROW
+                    || clickType == ClickType.CLONE)) return;
+        }
+        super.clicked(slotId, dragType, clickType, player);
+    }
+
+    @Override public boolean canTakeItemForPickAll(ItemStack stack, Slot slot) {
+        return !(slot instanceof GreedsVaultMenu.VaultSlot) && super.canTakeItemForPickAll(stack, slot);
     }
 }
