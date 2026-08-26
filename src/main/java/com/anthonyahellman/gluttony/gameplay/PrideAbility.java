@@ -233,7 +233,7 @@ public final class PrideAbility {
             level.sendParticles(pulse == 1 ? ParticleTypes.END_ROD : ParticleTypes.SOUL_FIRE_FLAME,
                     target.getX(), target.getY() + 0.7, target.getZ(), 12,
                     0.4, 0.35, 0.4, 0.035);
-            level.playSound(null, target.blockPosition(), SoundEvents.RESPAWN_ANCHOR_DEPLETE,
+            level.playSound(null, target.blockPosition(), SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(),
                     SoundSource.PLAYERS, 0.45F, 1.35F - pulse * 0.15F);
         }
     }
