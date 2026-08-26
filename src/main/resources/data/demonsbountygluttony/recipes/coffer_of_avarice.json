@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GCN",
+    "CMC",
+    "NCG"
+  ],
+  "key": {
+    "G": { "item": "minecraft:gold_block" },
+    "N": { "item": "minecraft:netherite_ingot" },
+    "C": { "item": "minecraft:chest" },
+    "M": { "item": "demonsbountygluttony:coin_of_mammon" }
+  },
+  "result": {
+    "item": "demonsbountygluttony:coffer_of_avarice",
+    "count": 1
+  }
+}
