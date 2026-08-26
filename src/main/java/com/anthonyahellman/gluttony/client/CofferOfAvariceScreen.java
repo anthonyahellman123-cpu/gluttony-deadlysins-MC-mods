@@ -32,10 +32,16 @@ public final class CofferOfAvariceScreen extends AbstractContainerScreen<CofferO
         graphics.fill(left, top, left + imageWidth, top + imageHeight, 0xF00C0B08);
         graphics.fill(left + 3, top + 3, left + imageWidth - 3, top + imageHeight - 3, 0xFF1A1710);
         graphics.fill(left + 5, top + 5, left + imageWidth - 5, top + 16, 0xFF342711);
-        graphics.drawString(font, String.format("%.1fs", menu.secondsRemaining()),
-                left + 158, top + 6, 0xFFC7B98B, false);
-        graphics.drawString(font, String.format("Next: +%.2f Avarice", menu.nextPayout()),
-                left + 8, top + 119, 0xFFD8B642, false);
+        if (menu.blockedByUnappraisedItem()) {
+            graphics.drawString(font, "JAM", left + 168, top + 6, 0xFFFF5555, false);
+            graphics.drawString(font, "Unappraised item in front row", left + 8, top + 119,
+                    0xFFFF7777, false);
+        } else {
+            graphics.drawString(font, String.format("%.1fs", menu.secondsRemaining()),
+                    left + 158, top + 6, 0xFFC7B98B, false);
+            graphics.drawString(font, String.format("Next: +%.2f Avarice", menu.nextPayout()),
+                    left + 8, top + 119, 0xFFD8B642, false);
+        }
 
         for (int row = 0; row < CofferOfAvariceMenu.VISIBLE_ROWS; row++) {
             for (int column = 0; column < CofferOfAvariceBlockEntity.COLUMNS; column++) {

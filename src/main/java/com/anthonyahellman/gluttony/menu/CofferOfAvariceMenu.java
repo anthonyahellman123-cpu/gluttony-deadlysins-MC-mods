@@ -24,7 +24,7 @@ public final class CofferOfAvariceMenu extends AbstractContainerMenu {
 
     public CofferOfAvariceMenu(int id, Inventory playerInventory, FriendlyByteBuf buffer) {
         this(id, playerInventory, new SimpleContainer(CofferOfAvariceBlockEntity.SIZE),
-                new SimpleContainerData(2));
+                new SimpleContainerData(3));
     }
 
     public CofferOfAvariceMenu(int id, Inventory playerInventory, Container coffer, ContainerData data) {
@@ -32,7 +32,7 @@ public final class CofferOfAvariceMenu extends AbstractContainerMenu {
         checkContainerSize(coffer, CofferOfAvariceBlockEntity.SIZE);
         this.coffer = coffer;
         this.data = data;
-        checkContainerDataCount(data, 2);
+        checkContainerDataCount(data, 3);
         addDataSlots(data);
         coffer.startOpen(playerInventory.player);
 
@@ -66,6 +66,10 @@ public final class CofferOfAvariceMenu extends AbstractContainerMenu {
 
     public double nextPayout() {
         return data.get(1) / 100.0;
+    }
+
+    public boolean blockedByUnappraisedItem() {
+        return data.get(2) != 0;
     }
 
     public void scrollTo(int row) {

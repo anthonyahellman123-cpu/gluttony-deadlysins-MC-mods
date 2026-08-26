@@ -85,11 +85,26 @@ public final class CofferOfAvariceBlockEntity extends BlockEntity implements Con
         return appraised * PAYOUT_RATE;
     }
 
+    public boolean blockedByUnappraisedItem() {
+        for (int slot = 0; slot < COLUMNS; slot++) {
+            ItemStack stack = items.get(slot);
+            if (!stack.isEmpty() && AvariceAppraisals.value(stack) <= 0.0) return true;
+        }
+        return false;
+    }
+
     public static void serverTick(Level level, BlockPos pos, BlockState state,
                                   CofferOfAvariceBlockEntity coffer) {
         if (!(level instanceof ServerLevel serverLevel)) return;
         coffer.flushPayout(serverLevel);
         if (coffer.isEmpty()) {
+            if (coffer.processTicks != 0) {
+                coffer.processTicks = 0;
+                coffer.setChanged();
+            }
+            return;
+        }
+        if (coffer.blockedByUnappraisedItem()) {
             if (coffer.processTicks != 0) {
                 coffer.processTicks = 0;
                 coffer.setChanged();
@@ -185,13 +200,14 @@ public final class CofferOfAvariceBlockEntity extends BlockEntity implements Con
             public int get(int index) {
                 if (index == 0) return processTicks;
                 if (index == 1) return (int) Math.min(Integer.MAX_VALUE, Math.round(nextPayout() * 100.0));
+                if (index == 2) return blockedByUnappraisedItem() ? 1 : 0;
                 return 0;
             }
 
             @Override public void set(int index, int value) {
                 if (index == 0) processTicks = Math.max(0, Math.min(PROCESS_TICKS - 1, value));
             }
-            @Override public int getCount() { return 2; }
+            @Override public int getCount() { return 3; }
         });
     }
 

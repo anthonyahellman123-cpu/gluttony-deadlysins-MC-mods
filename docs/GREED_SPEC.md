@@ -71,6 +71,8 @@ Recipe:
 - A completely full Coffer takes 100 seconds to process.
 - Hopper and pipe insertion is supported; automated extraction is blocked.
 - Payout earned while the owner is offline is retained by the Coffer and credited when the owner returns.
+- Development safety: an unappraised item in the front row jams processing instead of being destroyed for zero.
+  This interlock becomes invisible once the canonical appraisal system prices all eligible items.
 
 Recipe:
 
