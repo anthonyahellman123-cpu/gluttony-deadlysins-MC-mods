@@ -46,17 +46,21 @@ public final class ClientForgeEvents {
         if (!AbilityHudOverlay.greedAwakened()) return;
         double each = AvariceAppraisals.value(event.getItemStack());
         if (each <= 0.0) {
-            event.getToolTip().add(Component.literal("Unappraised").withStyle(ChatFormatting.DARK_GRAY));
+            event.getToolTip().add(Component.literal("Appraisal: VALUE TBD")
+                    .withStyle(ChatFormatting.DARK_GRAY));
+            event.getToolTip().add(Component.literal("Cannot Divest or Vault")
+                    .withStyle(ChatFormatting.RED));
             return;
         }
         double stack = AvariceAppraisals.stackValue(event.getItemStack());
-        event.getToolTip().add(Component.literal(String.format("Appraised: %.2f Avarice each", each))
+        event.getToolTip().add(Component.literal(String.format("Appraisal: %.2f Ava each", each))
                 .withStyle(ChatFormatting.GOLD));
-        event.getToolTip().add(Component.literal(AvariceAppraisals.tier(event.getItemStack()).displayName())
+        event.getToolTip().add(Component.literal("Quantity: " + event.getItemStack().getCount())
+                .withStyle(ChatFormatting.GRAY));
+        event.getToolTip().add(Component.literal(String.format("Total: %.2f Ava", stack))
                 .withStyle(ChatFormatting.DARK_GREEN));
-        if (event.getItemStack().getCount() > 1) {
-            event.getToolTip().add(Component.literal(String.format("Stack value: %.2f Avarice", stack))
-                    .withStyle(ChatFormatting.DARK_GREEN));
-        }
+        event.getToolTip().add(Component.literal("Asset Tier: "
+                        + AvariceAppraisals.tier(event.getItemStack()).displayName())
+                .withStyle(ChatFormatting.DARK_GREEN));
     }
 }

@@ -5,11 +5,14 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.minecraft.core.registries.BuiltInRegistries;
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -24,13 +27,16 @@ import net.minecraftforge.fml.common.Mod;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.slf4j.Logger;
 
 @Mod.EventBusSubscriber(modid = GluttonyMod.MOD_ID)
 public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
     private static final Gson GSON = new GsonBuilder().create();
     private static final Map<ResourceLocation, Double> ANCHORS = createAnchors();
-    private static volatile Map<ResourceLocation, Double> fixedValues = ANCHORS;
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static volatile Map<ResourceLocation, Double> configuredValues = Map.of();
     private static volatile Map<ResourceLocation, Double> values = ANCHORS;
+    private static volatile boolean derivationDirty = true;
 
     public enum AssetTier {
         UNAPPRAISED(0, "Unappraised"),
@@ -87,10 +93,17 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
         values = Map.copyOf(syncedValues);
     }
 
+    public static synchronized void ensureDerived(MinecraftServer server) {
+        if (!derivationDirty) return;
+        deriveReliableCraftingValues(server.getRecipeManager(), server.registryAccess());
+    }
+
     public static synchronized void deriveReliableCraftingValues(RecipeManager recipes,
                                                                   RegistryAccess registryAccess) {
-        Map<ResourceLocation, Double> fixed = fixedValues;
-        Map<ResourceLocation, Double> derived = new HashMap<>(fixed);
+        Map<ResourceLocation, Double> anchors = effectiveAnchors();
+        Map<ResourceLocation, Double> working = new HashMap<>(configuredValues);
+        working.putAll(anchors);
+        Map<ResourceLocation, Double> derived = new HashMap<>();
         boolean changed;
         int passes = 0;
         do {
@@ -101,26 +114,25 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
                 ItemStack result = recipe.getResultItem(registryAccess);
                 if (result.isEmpty()) continue;
                 ResourceLocation resultId = BuiltInRegistries.ITEM.getKey(result.getItem());
-                if (fixed.containsKey(resultId)) continue;
+                if (anchors.containsKey(resultId)) continue;
                 double ingredientTotal = 0.0;
                 boolean reliable = true;
                 for (Ingredient ingredient : recipe.getIngredients()) {
                     if (ingredient.isEmpty()) continue;
                     ItemStack[] choices = ingredient.getItems();
                     if (choices.length == 0) { reliable = false; break; }
-                    Double commonValue = null;
+                    double cheapestChoice = Double.POSITIVE_INFINITY;
                     for (ItemStack choice : choices) {
                         ResourceLocation choiceId = BuiltInRegistries.ITEM.getKey(choice.getItem());
-                        double choiceValue = derived.getOrDefault(choiceId, 0.0);
-                        if (choiceValue <= 0.0 || (commonValue != null
-                                && Math.abs(commonValue - choiceValue) > 0.0001)) {
+                        double choiceValue = working.getOrDefault(choiceId, 0.0);
+                        if (choiceValue <= 0.0) {
                             reliable = false;
                             break;
                         }
-                        commonValue = choiceValue;
+                        cheapestChoice = Math.min(cheapestChoice, choiceValue);
                     }
-                    if (!reliable || commonValue == null) break;
-                    ingredientTotal += commonValue;
+                    if (!reliable || !Double.isFinite(cheapestChoice)) break;
+                    ingredientTotal += cheapestChoice;
                 }
                 if (reliable && ingredientTotal > 0.0) {
                     candidates.merge(resultId, ingredientTotal / Math.max(1, result.getCount()), Math::min);
@@ -129,19 +141,26 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
             for (Map.Entry<ResourceLocation, Double> candidate : candidates.entrySet()) {
                 double old = derived.getOrDefault(candidate.getKey(), Double.POSITIVE_INFINITY);
                 if (candidate.getValue() + 0.0001 < old) {
+                    working.put(candidate.getKey(), candidate.getValue());
                     derived.put(candidate.getKey(), candidate.getValue());
                     changed = true;
                 }
             }
             passes++;
-        } while (changed && passes < 16);
-        values = Map.copyOf(derived);
+        } while (changed && passes < 64);
+        Map<ResourceLocation, Double> resolved = new HashMap<>(configuredValues);
+        resolved.putAll(derived);
+        resolved.putAll(anchors);
+        values = Map.copyOf(resolved);
+        derivationDirty = false;
+        LOGGER.info("Roots of Sin appraisal ready: {} anchors, {} configured, {} recipe-derived, {} total values",
+                anchors.size(), configuredValues.size(), derived.size(), values.size());
     }
 
     @Override
     protected void apply(Map<ResourceLocation, JsonElement> objects, ResourceManager manager,
                          ProfilerFiller profiler) {
-        Map<ResourceLocation, Double> loaded = new HashMap<>(ANCHORS);
+        Map<ResourceLocation, Double> loaded = new HashMap<>();
         for (Map.Entry<ResourceLocation, JsonElement> entry : objects.entrySet()) {
             JsonObject json = entry.getValue().getAsJsonObject();
             if (json.has("values") && json.get("values").isJsonObject()) {
@@ -154,8 +173,11 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
                         json.get("value").getAsDouble());
             }
         }
-        fixedValues = Map.copyOf(loaded);
-        values = fixedValues;
+        configuredValues = Map.copyOf(loaded);
+        Map<ResourceLocation, Double> initial = new HashMap<>(configuredValues);
+        initial.putAll(effectiveAnchors());
+        values = Map.copyOf(initial);
+        derivationDirty = true;
     }
 
     private static void putIfValid(Map<ResourceLocation, Double> target, ResourceLocation itemId, double value) {
@@ -209,6 +231,13 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
         target.put(new ResourceLocation("minecraft", path), value);
     }
 
+    private static Map<ResourceLocation, Double> effectiveAnchors() {
+        Map<ResourceLocation, Double> anchors = new HashMap<>(ANCHORS);
+        BuiltInRegistries.ITEM.getTag(ItemTags.LOGS).ifPresent(logs -> logs.forEach(holder ->
+                anchors.put(BuiltInRegistries.ITEM.getKey(holder.value()), 2.0)));
+        return anchors;
+    }
+
     @SubscribeEvent
     public static void registerReloadListener(AddReloadListenerEvent event) {
         event.addListener(new AvariceAppraisals());
@@ -216,8 +245,7 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
 
     @SubscribeEvent
     public static void onDatapackSync(OnDatapackSyncEvent event) {
-        deriveReliableCraftingValues(event.getPlayerList().getServer().getRecipeManager(),
-                event.getPlayerList().getServer().registryAccess());
+        ensureDerived(event.getPlayerList().getServer());
         if (event.getPlayer() != null) {
             com.anthonyahellman.gluttony.gameplay.AbilityHudSync.sendAppraisals(event.getPlayer());
         } else {

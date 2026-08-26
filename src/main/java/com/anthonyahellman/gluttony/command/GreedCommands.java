@@ -45,6 +45,7 @@ public final class GreedCommands {
     }
 
     private static int appraise(ServerPlayer player) {
+        AvariceAppraisals.ensureDerived(player.server);
         ItemStack stack = player.getMainHandItem();
         if (stack.isEmpty()) {
             player.displayClientMessage(Component.literal("Hold an item to appraise it.")
@@ -54,9 +55,11 @@ public final class GreedCommands {
         double each = AvariceAppraisals.value(stack);
         double total = AvariceAppraisals.stackValue(stack);
         player.displayClientMessage(Component.literal(each <= 0.0
-                ? "Unappraised: " + stack.getHoverName().getString()
-                : String.format("%s: %.2f each | %.2f for %d", stack.getHoverName().getString(), each,
-                total, stack.getCount())).withStyle(each <= 0.0 ? ChatFormatting.GRAY : ChatFormatting.GOLD), false);
+                ? stack.getHoverName().getString() + ": VALUE TBD | Cannot Divest or Vault"
+                : String.format("%s | %.2f Ava each | Quantity: %d | Total: %.2f Ava | %s",
+                stack.getHoverName().getString(), each, stack.getCount(), total,
+                AvariceAppraisals.tier(stack).displayName()))
+                .withStyle(each <= 0.0 ? ChatFormatting.GRAY : ChatFormatting.GOLD), false);
         return each <= 0.0 ? 0 : 1;
     }
 

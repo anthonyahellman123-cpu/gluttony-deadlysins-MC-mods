@@ -86,6 +86,8 @@ public final class PouchOfMammonMenu extends AbstractContainerMenu {
         }
         if (id != DIVEST_BUTTON) return false;
 
+        AvariceAppraisals.ensureDerived(serverPlayer.server);
+
         if (inventory.isEmpty()) {
             serverPlayer.displayClientMessage(Component.literal("The divestment grid is empty.")
                     .withStyle(ChatFormatting.GRAY), true);
@@ -107,10 +109,6 @@ public final class PouchOfMammonMenu extends AbstractContainerMenu {
         }
 
         GreedData greed = inventory.greed();
-        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
-            ItemStack stack = inventory.getItem(slot);
-            if (!stack.isEmpty()) greed.addMarketStock(stack);
-        }
         inventory.clearContent();
         greed.recordDivestedAssets(count);
         greed.addAvarice(total, GreedData.IncomeSource.DIVESTMENT);

@@ -84,6 +84,7 @@ public final class AbilityHudSync {
     }
 
     public static void sendAppraisals(ServerPlayer player) {
+        AvariceAppraisals.ensureDerived(player.server);
         ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
                 new AvariceValuesPacket(AvariceAppraisals.snapshot()));
     }
