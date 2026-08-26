@@ -35,8 +35,30 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
     private static final Map<ResourceLocation, Double> ANCHORS = createAnchors();
     private static final Logger LOGGER = LogUtils.getLogger();
     private static volatile Map<ResourceLocation, Double> configuredValues = Map.of();
-    private static volatile Map<ResourceLocation, Double> values = ANCHORS;
+    private static volatile Map<ResourceLocation, Double> serverValues = ANCHORS;
+    private static volatile Map<ResourceLocation, AppraisalSource> serverSources = anchorSources(ANCHORS);
+    private static volatile Map<ResourceLocation, ResourceLocation> serverRecipes = Map.of();
+    private static volatile Map<ResourceLocation, Double> clientValues = ANCHORS;
+    private static volatile Map<ResourceLocation, AppraisalSource> clientSources = anchorSources(ANCHORS);
+    private static volatile Map<ResourceLocation, ResourceLocation> clientRecipes = Map.of();
     private static volatile boolean derivationDirty = true;
+
+    public enum AppraisalSource {
+        ANCHOR("ANCHOR"),
+        RECIPE_DERIVED("RECIPE DERIVED"),
+        CONFIGURED("CONFIGURED");
+
+        private final String displayName;
+
+        AppraisalSource(String displayName) { this.displayName = displayName; }
+        public String displayName() { return displayName; }
+    }
+
+    public record Inspection(ResourceLocation itemId, boolean appraised, double value,
+                             AppraisalSource source, ResourceLocation recipeId, AssetTier tier,
+                             String unresolvedReason) {}
+
+    private record Candidate(double value, ResourceLocation recipeId) {}
 
     public enum AssetTier {
         UNAPPRAISED(0, "Unappraised"),
@@ -62,18 +84,34 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
         super(GSON, "avarice_appraisals");
     }
 
-    public static double value(ItemStack stack) {
+    public static double serverValue(ItemStack stack) {
+        return lookup(stack, serverValues);
+    }
+
+    public static double clientValue(ItemStack stack) {
+        return lookup(stack, clientValues);
+    }
+
+    private static double lookup(ItemStack stack, Map<ResourceLocation, Double> lookup) {
         if (stack.isEmpty()) return 0.0;
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        return Math.max(0.0, values.getOrDefault(id, 0.0));
+        return Math.max(0.0, lookup.getOrDefault(id, 0.0));
     }
 
-    public static double stackValue(ItemStack stack) {
-        return value(stack) * stack.getCount();
+    public static double serverStackValue(ItemStack stack) {
+        return serverValue(stack) * stack.getCount();
     }
 
-    public static AssetTier tier(ItemStack stack) {
-        return tier(value(stack));
+    public static double clientStackValue(ItemStack stack) {
+        return clientValue(stack) * stack.getCount();
+    }
+
+    public static AssetTier serverTier(ItemStack stack) {
+        return tier(serverValue(stack));
+    }
+
+    public static AssetTier clientTier(ItemStack stack) {
+        return tier(clientValue(stack));
     }
 
     public static AssetTier tier(double value) {
@@ -85,12 +123,39 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
         return AssetTier.PINNACLE;
     }
 
-    public static Map<ResourceLocation, Double> snapshot() {
-        return values;
+    public static Inspection inspectServer(ItemStack stack) {
+        return inspect(stack, serverValues, serverSources, serverRecipes);
     }
 
-    public static void replaceClientValues(Map<ResourceLocation, Double> syncedValues) {
-        values = Map.copyOf(syncedValues);
+    public static Inspection inspectClient(ItemStack stack) {
+        return inspect(stack, clientValues, clientSources, clientRecipes);
+    }
+
+    private static Inspection inspect(ItemStack stack, Map<ResourceLocation, Double> lookup,
+                                      Map<ResourceLocation, AppraisalSource> sources,
+                                      Map<ResourceLocation, ResourceLocation> recipes) {
+        ResourceLocation id = stack.isEmpty() ? new ResourceLocation("minecraft", "air")
+                : BuiltInRegistries.ITEM.getKey(stack.getItem());
+        double value = stack.isEmpty() ? 0.0 : Math.max(0.0, lookup.getOrDefault(id, 0.0));
+        AppraisalSource source = sources.get(id);
+        boolean appraised = value > 0.0 && source != null;
+        return new Inspection(id, appraised, value, source, recipes.get(id), tier(value),
+                appraised ? "" : "NO_SUPPORTED_VALUE_PATH");
+    }
+
+    public static Map<ResourceLocation, Double> serverSnapshot() { return serverValues; }
+    public static Map<ResourceLocation, AppraisalSource> serverSourceSnapshot() { return serverSources; }
+    public static Map<ResourceLocation, ResourceLocation> serverRecipeSnapshot() { return serverRecipes; }
+
+    public static void replaceClientValues(Map<ResourceLocation, Double> syncedValues,
+                                           Map<ResourceLocation, AppraisalSource> syncedSources,
+                                           Map<ResourceLocation, ResourceLocation> syncedRecipes) {
+        clientValues = Map.copyOf(syncedValues);
+        clientSources = Map.copyOf(syncedSources);
+        clientRecipes = Map.copyOf(syncedRecipes);
+        ResourceLocation dirt = new ResourceLocation("minecraft", "dirt");
+        LOGGER.info("Roots of Sin client appraisal sync: {} values; dirt={} source={}",
+                clientValues.size(), clientValues.getOrDefault(dirt, 0.0), clientSources.get(dirt));
     }
 
     public static synchronized void ensureDerived(MinecraftServer server) {
@@ -104,11 +169,12 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
         Map<ResourceLocation, Double> working = new HashMap<>(configuredValues);
         working.putAll(anchors);
         Map<ResourceLocation, Double> derived = new HashMap<>();
+        Map<ResourceLocation, ResourceLocation> derivedRecipes = new HashMap<>();
         boolean changed;
         int passes = 0;
         do {
             changed = false;
-            Map<ResourceLocation, Double> candidates = new HashMap<>();
+            Map<ResourceLocation, Candidate> candidates = new HashMap<>();
             for (Recipe<?> recipe : recipes.getRecipes()) {
                 if (recipe.getType() != RecipeType.CRAFTING || recipe.isSpecial()) continue;
                 ItemStack result = recipe.getResultItem(registryAccess);
@@ -135,14 +201,18 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
                     ingredientTotal += cheapestChoice;
                 }
                 if (reliable && ingredientTotal > 0.0) {
-                    candidates.merge(resultId, ingredientTotal / Math.max(1, result.getCount()), Math::min);
+                    Candidate candidate = new Candidate(ingredientTotal / Math.max(1, result.getCount()),
+                            recipe.getId());
+                    candidates.merge(resultId, candidate,
+                            (left, right) -> left.value() <= right.value() ? left : right);
                 }
             }
-            for (Map.Entry<ResourceLocation, Double> candidate : candidates.entrySet()) {
+            for (Map.Entry<ResourceLocation, Candidate> candidate : candidates.entrySet()) {
                 double old = derived.getOrDefault(candidate.getKey(), Double.POSITIVE_INFINITY);
-                if (candidate.getValue() + 0.0001 < old) {
-                    working.put(candidate.getKey(), candidate.getValue());
-                    derived.put(candidate.getKey(), candidate.getValue());
+                if (candidate.getValue().value() + 0.0001 < old) {
+                    working.put(candidate.getKey(), candidate.getValue().value());
+                    derived.put(candidate.getKey(), candidate.getValue().value());
+                    derivedRecipes.put(candidate.getKey(), candidate.getValue().recipeId());
                     changed = true;
                 }
             }
@@ -151,10 +221,19 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
         Map<ResourceLocation, Double> resolved = new HashMap<>(configuredValues);
         resolved.putAll(derived);
         resolved.putAll(anchors);
-        values = Map.copyOf(resolved);
+        Map<ResourceLocation, AppraisalSource> sources = new HashMap<>();
+        configuredValues.keySet().forEach(id -> sources.put(id, AppraisalSource.CONFIGURED));
+        derived.keySet().forEach(id -> sources.put(id, AppraisalSource.RECIPE_DERIVED));
+        anchors.keySet().forEach(id -> sources.put(id, AppraisalSource.ANCHOR));
+        serverValues = Map.copyOf(resolved);
+        serverSources = Map.copyOf(sources);
+        serverRecipes = Map.copyOf(derivedRecipes);
         derivationDirty = false;
+        ResourceLocation dirt = new ResourceLocation("minecraft", "dirt");
         LOGGER.info("Roots of Sin appraisal ready: {} anchors, {} configured, {} recipe-derived, {} total values",
-                anchors.size(), configuredValues.size(), derived.size(), values.size());
+                anchors.size(), configuredValues.size(), derived.size(), serverValues.size());
+        LOGGER.info("Roots of Sin server appraisal audit: dirt={} source={}",
+                serverValues.getOrDefault(dirt, 0.0), serverSources.get(dirt));
     }
 
     @Override
@@ -176,7 +255,12 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
         configuredValues = Map.copyOf(loaded);
         Map<ResourceLocation, Double> initial = new HashMap<>(configuredValues);
         initial.putAll(effectiveAnchors());
-        values = Map.copyOf(initial);
+        serverValues = Map.copyOf(initial);
+        Map<ResourceLocation, AppraisalSource> initialSources = new HashMap<>();
+        configuredValues.keySet().forEach(id -> initialSources.put(id, AppraisalSource.CONFIGURED));
+        effectiveAnchors().keySet().forEach(id -> initialSources.put(id, AppraisalSource.ANCHOR));
+        serverSources = Map.copyOf(initialSources);
+        serverRecipes = Map.of();
         derivationDirty = true;
     }
 
@@ -236,6 +320,12 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
         BuiltInRegistries.ITEM.getTag(ItemTags.LOGS).ifPresent(logs -> logs.forEach(holder ->
                 anchors.put(BuiltInRegistries.ITEM.getKey(holder.value()), 2.0)));
         return anchors;
+    }
+
+    private static Map<ResourceLocation, AppraisalSource> anchorSources(Map<ResourceLocation, Double> anchors) {
+        Map<ResourceLocation, AppraisalSource> sources = new HashMap<>();
+        anchors.keySet().forEach(id -> sources.put(id, AppraisalSource.ANCHOR));
+        return Map.copyOf(sources);
     }
 
     @SubscribeEvent

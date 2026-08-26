@@ -44,23 +44,31 @@ public final class ClientForgeEvents {
     @SubscribeEvent
     public static void itemTooltip(ItemTooltipEvent event) {
         if (!AbilityHudOverlay.greedAwakened()) return;
-        double each = AvariceAppraisals.value(event.getItemStack());
-        if (each <= 0.0) {
+        AvariceAppraisals.Inspection appraisal = AvariceAppraisals.inspectClient(event.getItemStack());
+        if (!appraisal.appraised()) {
             event.getToolTip().add(Component.literal("Appraisal: VALUE TBD")
+                    .withStyle(ChatFormatting.DARK_GRAY));
+            event.getToolTip().add(Component.literal("Reason: " + appraisal.unresolvedReason())
                     .withStyle(ChatFormatting.DARK_GRAY));
             event.getToolTip().add(Component.literal("Cannot Divest or Vault")
                     .withStyle(ChatFormatting.RED));
             return;
         }
-        double stack = AvariceAppraisals.stackValue(event.getItemStack());
+        double each = appraisal.value();
+        double stack = AvariceAppraisals.clientStackValue(event.getItemStack());
         event.getToolTip().add(Component.literal(String.format("Appraisal: %.2f Ava each", each))
                 .withStyle(ChatFormatting.GOLD));
         event.getToolTip().add(Component.literal("Quantity: " + event.getItemStack().getCount())
                 .withStyle(ChatFormatting.GRAY));
         event.getToolTip().add(Component.literal(String.format("Total: %.2f Ava", stack))
                 .withStyle(ChatFormatting.DARK_GREEN));
-        event.getToolTip().add(Component.literal("Asset Tier: "
-                        + AvariceAppraisals.tier(event.getItemStack()).displayName())
+        event.getToolTip().add(Component.literal("Source: " + appraisal.source().displayName())
+                .withStyle(ChatFormatting.GRAY));
+        if (appraisal.recipeId() != null) {
+            event.getToolTip().add(Component.literal("Recipe: " + appraisal.recipeId())
+                    .withStyle(ChatFormatting.DARK_GRAY));
+        }
+        event.getToolTip().add(Component.literal("Asset Tier: " + appraisal.tier().displayName())
                 .withStyle(ChatFormatting.DARK_GREEN));
     }
 }

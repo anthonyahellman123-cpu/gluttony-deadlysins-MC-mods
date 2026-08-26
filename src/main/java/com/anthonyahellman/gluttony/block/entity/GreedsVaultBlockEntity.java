@@ -97,7 +97,7 @@ public final class GreedsVaultBlockEntity extends BlockEntity implements Contain
         int start = row * COLUMNS;
         for (int slot = start; slot < start + COLUMNS && slot < unlockedSlots; slot++) {
             ItemStack stack = items.get(slot);
-            income += AvariceAppraisals.stackValue(stack) * stackEfficiency(stack) * effectiveYield;
+            income += AvariceAppraisals.serverStackValue(stack) * stackEfficiency(stack) * effectiveYield;
         }
         return income;
     }
@@ -110,7 +110,7 @@ public final class GreedsVaultBlockEntity extends BlockEntity implements Contain
 
     public double totalAppraisedAssets() {
         double total = 0.0;
-        for (int slot = 0; slot < unlockedSlots; slot++) total += AvariceAppraisals.stackValue(items.get(slot));
+        for (int slot = 0; slot < unlockedSlots; slot++) total += AvariceAppraisals.serverStackValue(items.get(slot));
         return total;
     }
 
@@ -209,7 +209,7 @@ public final class GreedsVaultBlockEntity extends BlockEntity implements Contain
     @Override public void clearContent() { items.clear(); setChanged(); }
     @Override public boolean canPlaceItem(int slot, ItemStack stack) {
         if (slot < 0 || slot >= unlockedSlots) return false;
-        int tier = AvariceAppraisals.tier(stack).level();
+        int tier = AvariceAppraisals.serverTier(stack).level();
         return tier > 0 && tier <= slot / COLUMNS + 1;
     }
 }

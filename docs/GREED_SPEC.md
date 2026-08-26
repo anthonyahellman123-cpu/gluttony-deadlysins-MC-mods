@@ -71,7 +71,15 @@ All three Pinnacles are passive, capped at Level 5, and add no keybinds.
   recipe derivation exists. Stone-tablet anchors still win, and reliable derivation takes priority over this fallback.
 - Processing may create value only through an explicit anchor/override, such as Netherite Ingot at 750.
 - Greed tooltips and `/greed appraise` show item name, Ava per item, quantity, total Ava, and Asset Tier before sale.
+- Appraisal uses one service with separate authoritative server and synchronized client stores. Server divestment, Vault,
+  and Coffer calls may never consult the client store; client previews may never mutate or replace the server store.
+- Appraisal synchronization preserves decimal values as doubles and includes source plus deriving recipe metadata.
+- `/greed appraise` reports item ID, status, exact decimal value, source, recipe when applicable, tier, or the explicit
+  unresolved reason `NO_SUPPORTED_VALUE_PATH`.
 - Unresolved items show `VALUE TBD`, cannot be Divested or Vaulted, and safely jam destructive liquidation.
+- Beef and Leather remain intentionally unresolved until a deterministic source or locked override is specified:
+  Beef has no supported value-producing crafting path, while Leather's vanilla Rabbit Hide recipe begins from another
+  unresolved item. No placeholder values are invented for either item.
 
 Tiers are appraisal-based: T1 0–9.99, T2 10–24.99, T3 25–74.99, T4 75–499.99, and T5 500+ Avarice.
 The full locked vanilla anchor table is installed in `AvariceAppraisals`.
@@ -130,6 +138,7 @@ Recipe:
 
 - Awakening, shared H/G routing, Avarice, Pouch, Coffer, and pre-sale appraisal feedback: implemented.
 - Core, Premium, Contract, Asset Appreciation, and Compound Interest mechanics: implemented in 0.11.0.
-- Locked anchors, hybrid recipe derivation, arbitrage-safe cheapest paths, and five Asset Tiers: implemented in 0.11.1.
+- Locked anchors, hybrid recipe derivation, arbitrage-safe cheapest paths, five Asset Tiers, split server/client
+  authorities, and source-aware diagnostics: implemented in 0.11.2.
 - Vault block, owner persistence, slot purchasing, tier rules, payouts, diversification, and UI: implemented in 0.11.0.
 - Customer Market transactions and visual/sound polish remain later work because their exact rules are still TBD.

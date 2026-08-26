@@ -98,13 +98,13 @@ public final class PouchOfMammonMenu extends AbstractContainerMenu {
         long count = 0L;
         for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
             ItemStack stack = inventory.getItem(slot);
-            if (!stack.isEmpty() && AvariceAppraisals.value(stack) <= 0.0) {
+            if (!stack.isEmpty() && !AvariceAppraisals.inspectServer(stack).appraised()) {
                 serverPlayer.displayClientMessage(Component.literal(
                         "Divestment blocked: remove every Unappraised asset.")
                         .withStyle(ChatFormatting.RED), true);
                 return true;
             }
-            total += AvariceAppraisals.stackValue(stack);
+            total += AvariceAppraisals.serverStackValue(stack);
             count += stack.getCount();
         }
 

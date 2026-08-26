@@ -12,8 +12,12 @@ import com.anthonyahellman.gluttony.greed.AvariceAppraisals;
 import com.anthonyahellman.gluttony.network.AvariceValuesPacket;
 import com.anthonyahellman.gluttony.network.GreedStatePacket;
 import com.anthonyahellman.gluttony.network.PrideStatePacket;
+import com.mojang.logging.LogUtils;
+import net.minecraft.resources.ResourceLocation;
+import org.slf4j.Logger;
 
 public final class AbilityHudSync {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private AbilityHudSync() {}
 
     public static void send(ServerPlayer player) {
@@ -85,7 +89,13 @@ public final class AbilityHudSync {
 
     public static void sendAppraisals(ServerPlayer player) {
         AvariceAppraisals.ensureDerived(player.server);
+        ResourceLocation dirt = new ResourceLocation("minecraft", "dirt");
+        LOGGER.info("Roots of Sin sending {} appraisals to {}; dirt={}",
+                AvariceAppraisals.serverSnapshot().size(), player.getGameProfile().getName(),
+                AvariceAppraisals.serverSnapshot().getOrDefault(dirt, 0.0));
         ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
-                new AvariceValuesPacket(AvariceAppraisals.snapshot()));
+                new AvariceValuesPacket(AvariceAppraisals.serverSnapshot(),
+                        AvariceAppraisals.serverSourceSnapshot(),
+                        AvariceAppraisals.serverRecipeSnapshot()));
     }
 }

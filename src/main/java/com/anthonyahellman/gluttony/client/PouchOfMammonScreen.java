@@ -183,10 +183,10 @@ public final class PouchOfMammonScreen extends AbstractContainerScreen<PouchOfMa
             ItemStack stack = slot.getItem();
             if (stack.isEmpty()) continue;
             any = true;
-            if (AvariceAppraisals.value(stack) <= 0.0) {
+            if (!AvariceAppraisals.inspectClient(stack).appraised()) {
                 return new DivestmentPreview("UNAPPRAISED ASSET — DIVEST BLOCKED", 0xFFFF6868);
             }
-            total += AvariceAppraisals.stackValue(stack);
+            total += AvariceAppraisals.clientStackValue(stack);
         }
         return new DivestmentPreview(any ? "DIVESTMENT VALUE: +" + format(total) : "GRID IS PERSISTENT",
                 any ? EMERALD : 0xFF817568);

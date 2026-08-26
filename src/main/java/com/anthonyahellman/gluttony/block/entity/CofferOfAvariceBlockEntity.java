@@ -80,7 +80,7 @@ public final class CofferOfAvariceBlockEntity extends BlockEntity implements Con
     public double nextPayout() {
         double appraised = 0.0;
         for (int slot = 0; slot < COLUMNS; slot++) {
-            appraised += AvariceAppraisals.stackValue(items.get(slot));
+            appraised += AvariceAppraisals.serverStackValue(items.get(slot));
         }
         return appraised * PAYOUT_RATE;
     }
@@ -88,7 +88,7 @@ public final class CofferOfAvariceBlockEntity extends BlockEntity implements Con
     public boolean blockedByUnappraisedItem() {
         for (int slot = 0; slot < COLUMNS; slot++) {
             ItemStack stack = items.get(slot);
-            if (!stack.isEmpty() && AvariceAppraisals.value(stack) <= 0.0) return true;
+            if (!stack.isEmpty() && !AvariceAppraisals.inspectServer(stack).appraised()) return true;
         }
         return false;
     }
@@ -124,7 +124,7 @@ public final class CofferOfAvariceBlockEntity extends BlockEntity implements Con
     private void consumeFrontRow() {
         double appraised = 0.0;
         for (int slot = 0; slot < COLUMNS; slot++) {
-            appraised += AvariceAppraisals.stackValue(items.get(slot));
+            appraised += AvariceAppraisals.serverStackValue(items.get(slot));
         }
         for (int slot = 0; slot < SIZE - COLUMNS; slot++) {
             items.set(slot, items.get(slot + COLUMNS));

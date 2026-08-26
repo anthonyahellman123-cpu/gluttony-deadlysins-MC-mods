@@ -115,13 +115,13 @@ public final class GreedsVaultScreen extends AbstractContainerScreen<GreedsVault
         int start = row * GreedsVaultBlockEntity.COLUMNS;
         for (int slot = start; slot < start + GreedsVaultBlockEntity.COLUMNS && slot < menu.unlockedSlots(); slot++) {
             ItemStack stack = menu.vault().getItem(slot);
-            total += AvariceAppraisals.stackValue(stack) * GreedsVaultBlockEntity.stackEfficiency(stack) * yield;
+            total += AvariceAppraisals.clientStackValue(stack) * GreedsVaultBlockEntity.stackEfficiency(stack) * yield;
         }
         return total;
     }
 
     private double projectedIncome() { double total = 0.0; for (int row = 0; row < 5; row++) total += rowIncome(row); return total; }
-    private double totalAssets() { double total = 0.0; for (int i = 0; i < menu.unlockedSlots(); i++) total += AvariceAppraisals.stackValue(menu.vault().getItem(i)); return total; }
+    private double totalAssets() { double total = 0.0; for (int i = 0; i < menu.unlockedSlots(); i++) total += AvariceAppraisals.clientStackValue(menu.vault().getItem(i)); return total; }
     private static String pct(double value) { return String.format("%.1f%%", value * 100.0); }
     private static String compact(double value) { return value >= 1_000 ? "1k" : String.format("%.0f", value); }
     private static String format(double value) { return Math.abs(value - Math.rint(value)) < 0.0001 ? String.format("%,.0f", value) : String.format("%,.2f", value); }

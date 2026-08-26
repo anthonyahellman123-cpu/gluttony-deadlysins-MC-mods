@@ -52,15 +52,30 @@ public final class GreedCommands {
                     .withStyle(ChatFormatting.GRAY), false);
             return 0;
         }
-        double each = AvariceAppraisals.value(stack);
-        double total = AvariceAppraisals.stackValue(stack);
-        player.displayClientMessage(Component.literal(each <= 0.0
-                ? stack.getHoverName().getString() + ": VALUE TBD | Cannot Divest or Vault"
-                : String.format("%s | %.2f Ava each | Quantity: %d | Total: %.2f Ava | %s",
-                stack.getHoverName().getString(), each, stack.getCount(), total,
-                AvariceAppraisals.tier(stack).displayName()))
-                .withStyle(each <= 0.0 ? ChatFormatting.GRAY : ChatFormatting.GOLD), false);
-        return each <= 0.0 ? 0 : 1;
+        AvariceAppraisals.Inspection appraisal = AvariceAppraisals.inspectServer(stack);
+        player.displayClientMessage(Component.literal("Item: " + appraisal.itemId())
+                .withStyle(ChatFormatting.GRAY), false);
+        if (!appraisal.appraised()) {
+            player.displayClientMessage(Component.literal("Status: UNRESOLVED")
+                    .withStyle(ChatFormatting.RED), false);
+            player.displayClientMessage(Component.literal("Reason: " + appraisal.unresolvedReason())
+                    .withStyle(ChatFormatting.GRAY), false);
+            return 0;
+        }
+        player.displayClientMessage(Component.literal("Status: APPRAISED")
+                .withStyle(ChatFormatting.GREEN), false);
+        player.displayClientMessage(Component.literal(String.format("Value: %.2f Ava each", appraisal.value()))
+                .withStyle(ChatFormatting.GOLD), false);
+        player.displayClientMessage(Component.literal("Source: " + appraisal.source().name())
+                .withStyle(ChatFormatting.YELLOW), false);
+        if (appraisal.recipeId() != null) {
+            player.displayClientMessage(Component.literal("Recipe: " + appraisal.recipeId())
+                    .withStyle(ChatFormatting.DARK_GRAY), false);
+        }
+        player.displayClientMessage(Component.literal(String.format("Quantity: %d | Total: %.2f Ava | Tier: %s",
+                        stack.getCount(), AvariceAppraisals.serverStackValue(stack), appraisal.tier().displayName()))
+                .withStyle(ChatFormatting.GOLD), false);
+        return 1;
     }
 
     private static int grant(ServerPlayer player, double amount) {
