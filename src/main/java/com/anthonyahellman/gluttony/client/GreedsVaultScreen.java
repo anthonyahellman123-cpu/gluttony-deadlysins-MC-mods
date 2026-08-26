@@ -68,12 +68,12 @@ public final class GreedsVaultScreen extends AbstractContainerScreen<GreedsVault
             int infoX = left + 182;
             double bonus = diversification(row);
             double effective = GreedsVaultBlockEntity.baseYield(row) + bonus;
-            graphics.drawString(font, "ROW " + (row + 1) + "  T1-T" + (row + 1), infoX, y + 1,
+            graphics.drawString(font, "ROW " + (row + 1) + "  T1-T" + (row + 1), infoX, y,
                     0xFFFFD56A, false);
-            graphics.drawString(font, pct(GreedsVaultBlockEntity.baseYield(row)) + " + " + pct(bonus)
-                    + " = " + pct(effective), infoX + 78, y + 1, 0xFFB9A683, false);
-            graphics.drawString(font, "+" + format(rowIncome(row)) + " Ava / 30m", infoX + 205, y + 1,
+            graphics.drawString(font, "+" + format(rowIncome(row)) + " Ava / 30m", infoX + 78, y,
                     EMERALD, false);
+            graphics.drawString(font, pct(GreedsVaultBlockEntity.baseYield(row)) + " + " + pct(bonus)
+                    + " diversified = " + pct(effective), infoX, y + 9, 0xFFB9A683, false);
         }
 
         graphics.drawString(font, "YOUR INVENTORY", left + 10, top + 130, 0xFFB7A78F, false);

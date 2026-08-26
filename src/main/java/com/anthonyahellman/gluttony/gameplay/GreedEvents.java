@@ -135,7 +135,7 @@ public final class GreedEvents {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
         if (!(event.getPlayer() instanceof ServerPlayer player)
-                || !(event.getLevel() instanceof ServerLevel level)) return;
+                || player.isCreative() || !(event.getLevel() instanceof ServerLevel level)) return;
         int luck = eligibleLuckLevel(player);
         if (luck <= 0) return;
         BlockPos pos = event.getPos();

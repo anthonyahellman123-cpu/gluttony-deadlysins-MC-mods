@@ -4,12 +4,15 @@ import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.data.GreedData;
 import com.anthonyahellman.gluttony.greed.AvariceAppraisals;
 import com.anthonyahellman.gluttony.gameplay.AbilityHudSync;
+import com.anthonyahellman.gluttony.block.entity.GreedsVaultBlockEntity;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -29,7 +32,10 @@ public final class GreedCommands {
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01))
                                 .executes(context -> grant(context.getSource().getPlayerOrException(),
-                                        DoubleArgumentType.getDouble(context, "amount"))))));
+                                        DoubleArgumentType.getDouble(context, "amount")))))
+                .then(Commands.literal("settle_vault")
+                        .requires(source -> source.hasPermission(2))
+                        .executes(context -> settleVault(context.getSource().getPlayerOrException()))));
     }
 
     private static int balance(ServerPlayer player) {
@@ -58,6 +64,20 @@ public final class GreedCommands {
         GreedData.of(player).addAvarice(amount);
         AbilityHudSync.send(player);
         player.displayClientMessage(Component.literal(String.format("Granted %.2f test Avarice.", amount))
+                .withStyle(ChatFormatting.GOLD), false);
+        return 1;
+    }
+
+    private static int settleVault(ServerPlayer player) {
+        HitResult hit = player.pick(6.0, 0.0F, false);
+        if (!(hit instanceof BlockHitResult blockHit)
+                || !(player.level().getBlockEntity(blockHit.getBlockPos()) instanceof GreedsVaultBlockEntity vault)
+                || !vault.forceProduction(player)) {
+            player.displayClientMessage(Component.literal("Look directly at your Greed's Vault within six blocks.")
+                    .withStyle(ChatFormatting.RED), false);
+            return 0;
+        }
+        player.displayClientMessage(Component.literal("Forced one Vault settlement for testing.")
                 .withStyle(ChatFormatting.GOLD), false);
         return 1;
     }

@@ -143,6 +143,15 @@ public final class GreedsVaultBlockEntity extends BlockEntity implements Contain
         setChanged();
     }
 
+    public boolean forceProduction(ServerPlayer player) {
+        if (!isOwner(player)) return false;
+        pendingAvarice += projectedIncome();
+        productionTicks = 0;
+        flushPayout(player.serverLevel());
+        setChanged();
+        return true;
+    }
+
     public void dropContents(Level level, BlockPos pos) { Containers.dropContents(level, pos, this); clearContent(); }
 
     @Override protected void saveAdditional(CompoundTag tag) {

@@ -206,7 +206,7 @@ public final class PouchOfMammonScreen extends AbstractContainerScreen<PouchOfMa
     private void premiumRow(GuiGraphics graphics, int x, int y, String name, int level) {
         graphics.drawString(font, name, x, y, 0xFFCDBD9F, false);
         graphics.drawString(font, level + "/10", x + 111, y, 0xFFAA9A80, false);
-        graphics.drawString(font, level >= 10 ? "MAX" : format(premiumCost(level)), x + 143, y,
+        graphics.drawString(font, level >= 10 ? "MAX" : compactCost(premiumCost(level)), x + 143, y,
                 0xFF9E8E74, false);
     }
 
@@ -244,7 +244,7 @@ public final class PouchOfMammonScreen extends AbstractContainerScreen<PouchOfMa
             if (minecraft != null && minecraft.gameMode != null) {
                 minecraft.gameMode.handleInventoryButtonClick(menu.containerId, id);
             }
-        }).bounds(leftPos + 15 + LEFT_CONTENT_INSET + 184, topPos + relativeY - 2, 25, 12).build());
+        }).bounds(leftPos + 15 + LEFT_CONTENT_INSET + 184, topPos + relativeY - 1, 22, 10).build());
     }
 
     private static String compactCost(double cost) {
