@@ -23,6 +23,7 @@ public final class PouchOfMammonScreen extends AbstractContainerScreen<PouchOfMa
     private static final int EMERALD = 0xFF4ED486;
     private static final int RED = 0xFF9A3028;
     private static final int PANEL = 0xF3120E0B;
+    private static final int LEFT_CONTENT_INSET = 14;
 
     private Button divestButton;
     private Button marketButton;
@@ -44,7 +45,7 @@ public final class PouchOfMammonScreen extends AbstractContainerScreen<PouchOfMa
                                 PouchOfMammonMenu.DIVEST_BUTTON);
                     }
                 }).bounds(leftPos + 244, topPos + 84, 92, 20).build());
-        marketButton = addRenderableWidget(Button.builder(Component.literal("SEL YO SHIT"), button -> {
+        marketButton = addRenderableWidget(Button.builder(Component.literal("SELL ITEMS"), button -> {
                     if (minecraft != null && minecraft.gameMode != null) {
                         minecraft.gameMode.handleInventoryButtonClick(menu.containerId,
                                 PouchOfMammonMenu.MARKET_BUTTON);
@@ -69,39 +70,41 @@ public final class PouchOfMammonScreen extends AbstractContainerScreen<PouchOfMa
         frame(graphics, left, top, imageWidth, imageHeight, GOLD);
         graphics.fill(left + 3, top + 3, left + imageWidth - 3, top + 20, 0xFF2B160D);
         graphics.blit(SIGIL, left + 5, top + 3, 0, 0, 16, 16, 128, 128);
-        graphics.drawString(font, "POUCH OF MAMMON", left + 25, top + 8, BRIGHT_GOLD, false);
+        graphics.drawString(font, "POUCH OF MAMMON", left + 25 + LEFT_CONTENT_INSET, top + 8,
+                BRIGHT_GOLD, false);
         graphics.drawString(font, "G or Esc to close", left + imageWidth - 86, top + 8,
                 0xFF8D7961, false);
 
         // Left-side permanent investment ledger.
         panel(graphics, left + 7, top + 23, 220, 220, RED);
-        graphics.drawString(font, "PERMANENT INVESTMENTS", left + 15, top + 30, BRIGHT_GOLD, false);
-        graphics.drawString(font, "CORE INVESTMENTS", left + 15, top + 45, 0xFFFFC761, false);
-        graphics.drawString(font, "STAT", left + 15, top + 53, 0xFF766B5B, false);
-        graphics.drawString(font, "BONUS", left + 89, top + 53, 0xFF766B5B, false);
-        graphics.drawString(font, "OWNED", left + 124, top + 53, 0xFF766B5B, false);
-        graphics.drawString(font, "COST", left + 159, top + 53, 0xFF766B5B, false);
-        coreRow(graphics, left + 15, top + 59, "MAX HEALTH", state.coreHealth(),
+        int ledgerX = left + 15 + LEFT_CONTENT_INSET;
+        graphics.drawString(font, "PERMANENT INVESTMENTS", ledgerX, top + 30, BRIGHT_GOLD, false);
+        graphics.drawString(font, "CORE INVESTMENTS", ledgerX, top + 45, 0xFFFFC761, false);
+        graphics.drawString(font, "STAT", ledgerX, top + 53, 0xFF766B5B, false);
+        graphics.drawString(font, "BONUS", ledgerX + 74, top + 53, 0xFF766B5B, false);
+        graphics.drawString(font, "OWNED", ledgerX + 109, top + 53, 0xFF766B5B, false);
+        graphics.drawString(font, "COST", ledgerX + 144, top + 53, 0xFF766B5B, false);
+        coreRow(graphics, ledgerX, top + 59, "MAX HEALTH", state.coreHealth(),
                 coreCost(state.coreHealth()));
-        coreRow(graphics, left + 15, top + 76, "ATTACK DAMAGE", state.coreAttack(),
+        coreRow(graphics, ledgerX, top + 76, "ATTACK DAMAGE", state.coreAttack(),
                 coreCost(state.coreAttack()));
-        coreRow(graphics, left + 15, top + 93, "ARMOR", state.coreArmor(),
+        coreRow(graphics, ledgerX, top + 93, "ARMOR", state.coreArmor(),
                 coreCost(state.coreArmor()));
 
-        line(graphics, left + 13, top + 113, left + 221, GOLD);
-        graphics.drawString(font, "PREMIUM INVESTMENTS — ROSTER TBD", left + 15, top + 118,
+        line(graphics, left + 13 + LEFT_CONTENT_INSET, top + 113, left + 221, GOLD);
+        graphics.drawString(font, "PREMIUM INVESTMENTS — ROSTER TBD", ledgerX, top + 118,
                 0xFFFFC761, false);
-        premiumRow(graphics, left + 15, top + 132, "MOVEMENT", state.premiumMovement());
-        premiumRow(graphics, left + 15, top + 143, "ATTACK SPEED", state.premiumAttackSpeed());
-        premiumRow(graphics, left + 15, top + 154, "LUCK", state.premiumLuck());
-        premiumRow(graphics, left + 15, top + 165, "KNOCKBACK RES.", state.premiumKnockback());
-        premiumRow(graphics, left + 15, top + 176, "AVARICE YIELD", state.premiumYield());
+        premiumRow(graphics, ledgerX, top + 132, "MOVEMENT", state.premiumMovement());
+        premiumRow(graphics, ledgerX, top + 143, "ATTACK SPEED", state.premiumAttackSpeed());
+        premiumRow(graphics, ledgerX, top + 154, "LUCK", state.premiumLuck());
+        premiumRow(graphics, ledgerX, top + 165, "KNOCKBACK RES.", state.premiumKnockback());
+        premiumRow(graphics, ledgerX, top + 176, "AVARICE YIELD", state.premiumYield());
 
-        line(graphics, left + 13, top + 190, left + 221, GOLD);
-        graphics.drawString(font, "PINNACLE ASSETS", left + 15, top + 195, 0xFFFFC761, false);
-        pinnacleRow(graphics, left + 15, top + 207, "COMPOUND INTEREST", state.compoundInterest(), true);
-        pinnacleRow(graphics, left + 15, top + 218, "ASSET APPRECIATION", state.assetAppreciation(), true);
-        pinnacleRow(graphics, left + 15, top + 229, "CONTRACT OF MAMMON", state.contractLevel(), false);
+        line(graphics, left + 13 + LEFT_CONTENT_INSET, top + 190, left + 221, GOLD);
+        graphics.drawString(font, "PINNACLE ASSETS", ledgerX, top + 195, 0xFFFFC761, false);
+        pinnacleRow(graphics, ledgerX, top + 207, "COMPOUND INTEREST", state.compoundInterest(), true);
+        pinnacleRow(graphics, ledgerX, top + 218, "ASSET APPRECIATION", state.assetAppreciation(), true);
+        pinnacleRow(graphics, ledgerX, top + 229, "CONTRACT OF MAMMON", state.contractLevel(), false);
 
         // Pouch inventory and the player's inventory remain visible together.
         graphics.drawString(font, "DIVEST ASSETS", left + 248, top + 10, BRIGHT_GOLD, false);
