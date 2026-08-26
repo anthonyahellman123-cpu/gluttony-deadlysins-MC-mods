@@ -140,7 +140,7 @@ public final class CofferOfAvariceBlockEntity extends BlockEntity implements Con
         if (owner == null || pendingAvarice <= 0.0) return;
         ServerPlayer player = level.getServer().getPlayerList().getPlayer(owner);
         if (player == null) return;
-        GreedData.of(player).addAvarice(pendingAvarice);
+        GreedData.of(player).addAvarice(pendingAvarice, GreedData.IncomeSource.COFFER);
         pendingAvarice = 0.0;
         AbilityHudSync.send(player);
         setChanged();

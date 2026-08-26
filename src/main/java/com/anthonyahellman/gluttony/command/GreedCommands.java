@@ -3,6 +3,8 @@ package com.anthonyahellman.gluttony.command;
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.data.GreedData;
 import com.anthonyahellman.gluttony.greed.AvariceAppraisals;
+import com.anthonyahellman.gluttony.gameplay.AbilityHudSync;
+import com.mojang.brigadier.arguments.DoubleArgumentType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -22,7 +24,12 @@ public final class GreedCommands {
                 .then(Commands.literal("balance")
                         .executes(context -> balance(context.getSource().getPlayerOrException())))
                 .then(Commands.literal("appraise")
-                        .executes(context -> appraise(context.getSource().getPlayerOrException()))));
+                        .executes(context -> appraise(context.getSource().getPlayerOrException())))
+                .then(Commands.literal("grant")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0.01))
+                                .executes(context -> grant(context.getSource().getPlayerOrException(),
+                                        DoubleArgumentType.getDouble(context, "amount"))))));
     }
 
     private static int balance(ServerPlayer player) {
@@ -45,5 +52,13 @@ public final class GreedCommands {
                 : String.format("%s: %.2f each | %.2f for %d", stack.getHoverName().getString(), each,
                 total, stack.getCount())).withStyle(each <= 0.0 ? ChatFormatting.GRAY : ChatFormatting.GOLD), false);
         return each <= 0.0 ? 0 : 1;
+    }
+
+    private static int grant(ServerPlayer player, double amount) {
+        GreedData.of(player).addAvarice(amount);
+        AbilityHudSync.send(player);
+        player.displayClientMessage(Component.literal(String.format("Granted %.2f test Avarice.", amount))
+                .withStyle(ChatFormatting.GOLD), false);
+        return 1;
     }
 }

@@ -6,7 +6,7 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class ModNetwork {
-    private static final String VERSION = "2";
+    private static final String VERSION = "3";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(GluttonyMod.MOD_ID, "main"),
             () -> VERSION,
@@ -17,11 +17,15 @@ public final class ModNetwork {
     private ModNetwork() {}
 
     public static void register() {
-        CHANNEL.registerMessage(0, SoulSiphonPacket.class,
-                SoulSiphonPacket::encode, SoulSiphonPacket::decode, SoulSiphonPacket::handle);
+        CHANNEL.registerMessage(0, SinAbilityPacket.class,
+                SinAbilityPacket::encode, SinAbilityPacket::decode, SinAbilityPacket::handle);
         CHANNEL.registerMessage(1, AbilityStatePacket.class,
                 AbilityStatePacket::encode, AbilityStatePacket::decode, AbilityStatePacket::handle);
         CHANNEL.registerMessage(2, AvariceValuesPacket.class,
                 AvariceValuesPacket::encode, AvariceValuesPacket::decode, AvariceValuesPacket::handle);
+        CHANNEL.registerMessage(3, GreedStatePacket.class,
+                GreedStatePacket::encode, GreedStatePacket::decode, GreedStatePacket::handle);
+        CHANNEL.registerMessage(4, PrideStatePacket.class,
+                PrideStatePacket::encode, PrideStatePacket::decode, PrideStatePacket::handle);
     }
 }

@@ -2,7 +2,7 @@ package com.anthonyahellman.gluttony.client;
 
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.network.ModNetwork;
-import com.anthonyahellman.gluttony.network.SoulSiphonPacket;
+import com.anthonyahellman.gluttony.network.SinAbilityPacket;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
@@ -22,10 +22,12 @@ public final class ClientForgeEvents {
         if (event.phase != TickEvent.Phase.END) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.level == null || minecraft.isPaused()) return;
-        while (ClientModEvents.SOUL_SIPHON.consumeClick()) {
-            ModNetwork.CHANNEL.sendToServer(new SoulSiphonPacket());
+        while (ClientModEvents.SIN_ABILITY.consumeClick()) {
+            if (minecraft.screen instanceof PouchOfMammonScreen) minecraft.player.closeContainer();
+            else if (minecraft.screen == null) ModNetwork.CHANNEL.sendToServer(new SinAbilityPacket());
         }
         while (ClientModEvents.SIN_STATS.consumeClick()) {
+            if (AbilityHudOverlay.sinId() <= 0) continue;
             if (minecraft.screen instanceof SinMenuScreen) minecraft.setScreen(null);
             else if (minecraft.screen == null) minecraft.setScreen(new SinMenuScreen());
         }

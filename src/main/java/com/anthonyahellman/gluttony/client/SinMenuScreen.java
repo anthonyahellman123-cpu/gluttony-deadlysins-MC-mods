@@ -1,6 +1,10 @@
 package com.anthonyahellman.gluttony.client;
 
 import com.anthonyahellman.gluttony.GluttonyMod;
+import com.anthonyahellman.gluttony.network.GreedStatePacket;
+import com.anthonyahellman.gluttony.network.ModNetwork;
+import com.anthonyahellman.gluttony.network.PrideStatePacket;
+import com.anthonyahellman.gluttony.network.SinAbilityPacket;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -12,110 +16,170 @@ public final class SinMenuScreen extends Screen {
     private static final ResourceLocation PRIDE = sigil("pride");
     private static final ResourceLocation GREED = sigil("greed");
 
-    public SinMenuScreen() {
-        super(Component.literal("The Roots of Sin"));
-    }
+    public SinMenuScreen() { super(Component.literal("The Roots of Sin")); }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics);
-        int panelWidth = Math.min(width - 24, 620);
-        int panelHeight = Math.min(height - 24, 286);
+        int panelWidth = Math.min(width - 24, 600);
+        int panelHeight = Math.min(height - 24, 310);
         int left = (width - panelWidth) / 2;
         int top = (height - panelHeight) / 2;
+        int sin = AbilityHudOverlay.sinId();
 
         graphics.fill(left, top, left + panelWidth, top + panelHeight, 0xF20A0809);
-        frame(graphics, left, top, panelWidth, panelHeight, 0xFF6B5421);
-        graphics.fill(left + 3, top + 3, left + panelWidth - 3, top + 22, 0xFF1B1410);
-        centered(graphics, "THE ROOTS OF SIN", width / 2, top + 8, 0xFFFFE7A3);
+        frame(graphics, left, top, panelWidth, panelHeight, accentFor(sin));
+        graphics.fill(left + 3, top + 3, left + panelWidth - 3, top + 23, 0xFF1B1410);
+        centered(graphics, "THE ROOTS OF SIN", width / 2, top + 9, 0xFFFFE7A3);
 
-        int gap = 7;
-        int cardsLeft = left + 9;
-        int cardWidth = (panelWidth - 18 - gap * 2) / 3;
-        int cardTop = top + 29;
-        int cardHeight = Math.min(126, panelHeight - 91);
-        drawCard(graphics, cardsLeft, cardTop, cardWidth, cardHeight, 1,
-                "GLUTTONY", "BEELZEBUB", GLUTTONY, 0xFF9B2335);
-        drawCard(graphics, cardsLeft + cardWidth + gap, cardTop, cardWidth, cardHeight, 2,
-                "PRIDE", "LUCIFER", PRIDE, 0xFFE3B12B);
-        drawCard(graphics, cardsLeft + (cardWidth + gap) * 2, cardTop, cardWidth, cardHeight, 3,
-                "GREED", "MAMMON", GREED, 0xFF35B86D);
+        if (sin == 1) renderGluttony(graphics, left, top, panelWidth);
+        else if (sin == 2) renderPride(graphics, left, top, panelWidth);
+        else if (sin == 3) renderGreed(graphics, left, top, panelWidth);
+        else renderDormant(graphics, left, top, panelWidth);
 
-        int detailsTop = cardTop + cardHeight + 7;
-        int detailsHeight = top + panelHeight - detailsTop - 17;
-        graphics.fill(left + 9, detailsTop, left + panelWidth - 9, detailsTop + detailsHeight, 0xD0120F10);
-        frame(graphics, left + 9, detailsTop, panelWidth - 18, detailsHeight, accentFor(AbilityHudOverlay.sinId()));
-        drawDetails(graphics, left + 17, detailsTop + 7);
-
-        centered(graphics, "H or Esc to close", width / 2, top + panelHeight - 12, 0xFF7F7468);
+        centered(graphics, "H or Esc to close", width / 2, top + panelHeight - 13, 0xFF7F7468);
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 
-    private void drawCard(GuiGraphics graphics, int x, int y, int width, int height, int sin,
-                          String name, String sovereign, ResourceLocation icon, int accent) {
-        boolean active = AbilityHudOverlay.sinId() == sin;
-        int border = active ? accent : 0xFF3A3432;
-        graphics.fill(x, y, x + width, y + height, active ? 0xE01B1515 : 0xD00E0C0D);
-        frame(graphics, x, y, width, height, border);
-        centered(graphics, name, x + width / 2, y + 7, active ? 0xFFFFFFFF : 0xFF8B8582);
+    private void renderGluttony(GuiGraphics graphics, int left, int top, int width) {
+        drawIdentity(graphics, left, top, GLUTTONY, "GLUTTONY", "BEELZEBUB", 0xFF9B2335);
+        int x = left + 92;
+        int y = top + 39;
+        graphics.drawString(font, "PROGRESSION", x, y, 0xFFFFA7AE, false);
+        graphics.drawString(font, "Stage: " + gluttonyStage(), x, y + 17, 0xFFE093A0, false);
+        graphics.drawString(font, "Level: " + AbilityHudOverlay.sinLevel(), x, y + 31, 0xFFF1D4DA, false);
+        graphics.drawString(font, String.format("Souls: %.2f", AbilityHudOverlay.souls()), x, y + 45,
+                0xFFD9B3FF, false);
+        graphics.drawString(font, String.format("Lifetime Souls: %.2f", AbilityHudOverlay.lifetimeSouls()),
+                x, y + 59, 0xFFC7A7D9, false);
 
-        int iconSize = Math.max(34, Math.min(64, height - 52));
-        int iconX = x + (width - iconSize) / 2;
-        int iconY = y + 21;
-        graphics.setColor(active ? 1.0F : 0.42F, active ? 1.0F : 0.42F,
-                active ? 1.0F : 0.42F, 1.0F);
-        graphics.blit(icon, iconX, iconY, 0, 0, iconSize, iconSize, 128, 128);
-        graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
-
-        centered(graphics, sovereign, x + width / 2, y + height - 22,
-                active ? accent : 0xFF665F5B);
-        String state = active ? (AbilityHudOverlay.abilityUnlocked() ? "AWAKENED" : "ABILITY LOCKED") : "UNCLAIMED";
-        centered(graphics, state, x + width / 2, y + height - 11,
-                active ? 0xFFD8CFBF : 0xFF554F4C);
+        int second = left + width / 2 + 18;
+        graphics.drawString(font, "CONSUMED POWER", second, y, 0xFFFFA7AE, false);
+        graphics.drawString(font, String.format("Maximum Health: +%.2f", AbilityHudOverlay.consumedHealth()),
+                second, y + 17, 0xFFE6C6C6, false);
+        graphics.drawString(font, String.format("Attack Damage: +%.2f", AbilityHudOverlay.consumedAttack()),
+                second, y + 31, 0xFFE6C6C6, false);
+        graphics.drawString(font, "G — " + gluttonyAction(), second, y + 59, 0xFFFF7777, false);
     }
 
-    private void drawDetails(GuiGraphics graphics, int x, int y) {
-        switch (AbilityHudOverlay.sinId()) {
-            case 1 -> {
-                graphics.drawString(font, "GLUTTONY — " + gluttonyStage(), x, y, 0xFFFFA7AE, false);
-                graphics.drawString(font, String.format("Level %d   Souls %.2f   Lifetime %.2f",
-                        AbilityHudOverlay.sinLevel(), AbilityHudOverlay.souls(), AbilityHudOverlay.lifetimeSouls()),
-                        x, y + 12, 0xFFD9B3FF, false);
-                graphics.drawString(font, String.format("Consumed: +%.2f health   +%.2f attack",
-                        AbilityHudOverlay.consumedHealth(), AbilityHudOverlay.consumedAttack()),
-                        x, y + 24, 0xFFE3C8C8, false);
-            }
-            case 2 -> {
-                graphics.drawString(font, "PRIDE — SOVEREIGN'S SLAM", x, y, 0xFFFFE09A, false);
-                graphics.drawString(font, "Impact: 25% max HP  >  Echo: 25% missing HP", x, y + 12,
-                        0xFFE8D4A0, false);
-                graphics.drawString(font, "After Warden: 10%  >  5% missing HP",
-                        x, y + 24, 0xFFFFC94D, false);
-            }
-            case 3 -> {
-                graphics.drawString(font, "GREED — MAMMON'S MARK", x, y, 0xFFFFDD70, false);
-                graphics.drawString(font, String.format("Avarice: %.2f", AbilityHudOverlay.avarice()),
-                        x, y + 12, 0xFF72E29B, false);
-                graphics.drawString(font, "The Coffer liquidates appraised offerings into Avarice.",
-                        x, y + 24, 0xFFC9B77B, false);
-            }
-            default -> {
-                graphics.drawString(font, "No natural sin has claimed your soul.", x, y, 0xFFB4AAA3, false);
-                graphics.drawString(font, "Awakening relics: Cursed Apple, Pride's Sol, Coin of Mammon.",
-                        x, y + 14, 0xFF81766F, false);
-            }
-        }
+    private void renderPride(GuiGraphics graphics, int left, int top, int width) {
+        drawIdentity(graphics, left, top, PRIDE, "PRIDE", "LUCIFER", 0xFFE3B12B);
+        PrideStatePacket state = PrideClientState.get();
+        int x = left + 92;
+        int y = top + 39;
+        graphics.drawString(font, "SUPREMACY TRIALS", x, y, 0xFFFFE09A, false);
+        trial(graphics, x, y + 18, "Ender Dragons", state.dragons(), 12);
+        trial(graphics, x, y + 33, "Withers", state.withers(), 8);
+        trial(graphics, x, y + 48, "Elder Guardians", state.guardians(), 4);
+        trial(graphics, x, y + 63, "Wardens", state.wardens(), 2);
+
+        int second = left + width / 2 + 18;
+        graphics.drawString(font, "PRIDE-GRANTED POWER", second, y, 0xFFFFE09A, false);
+        graphics.drawString(font, String.format("Maximum Health: +%.0f", state.maxHealthBonus()),
+                second, y + 18, 0xFFE8D4A0, false);
+        graphics.drawString(font, String.format("Attack Damage: +%.0f", state.attackBonus()),
+                second, y + 33, 0xFFE8D4A0, false);
+        graphics.drawString(font, String.format("Boss damage bonus: +%.1f%%", state.bossDamageBonus() * 100.0),
+                second, y + 48, 0xFFE8D4A0, false);
+        graphics.drawString(font, "Impact: 25% max HP", second, y + 70, 0xFFFFC94D, false);
+        graphics.drawString(font, "Echo: 25% missing HP", second, y + 84, 0xFFFFC94D, false);
+        graphics.drawString(font, "Warden echoes: 10% then 5%", second, y + 98, 0xFFFFC94D, false);
+        graphics.drawString(font, "G — SOVEREIGN'S SLAM", second, y + 121, 0xFFFFE66D, false);
+    }
+
+    private void renderGreed(GuiGraphics graphics, int left, int top, int width) {
+        drawIdentity(graphics, left, top, GREED, "GREED", "MAMMON", 0xFFD8B642);
+        GreedStatePacket state = GreedClientState.get();
+        int x = left + 92;
+        int y = top + 39;
+        graphics.drawString(font, "FINANCIAL POWER", x, y, 0xFFFFDD70, false);
+        graphics.drawString(font, "Avarice: " + format(state.avarice()), x, y + 17, 0xFF72E29B, false);
+        graphics.drawString(font, "Greed Max HP: TBD gain (" + state.coreHealth() + " purchases)",
+                x, y + 34, 0xFFD9C9A9, false);
+        graphics.drawString(font, "Greed Attack: TBD gain (" + state.coreAttack() + " purchases)",
+                x, y + 48, 0xFFD9C9A9, false);
+        graphics.drawString(font, "Greed Armor: TBD gain (" + state.coreArmor() + " purchases)",
+                x, y + 62, 0xFFD9C9A9, false);
+        graphics.drawString(font, "Lifetime earned: " + format(state.lifetimeEarned()), x, y + 84,
+                0xFFA9D6B5, false);
+        graphics.drawString(font, "Lifetime spent: " + format(state.lifetimeSpent()), x, y + 98,
+                0xFFC9A68D, false);
+        graphics.drawString(font, "Assets divested: " + state.assetsDivested(), x, y + 112,
+                0xFFD8C28D, false);
+
+        int second = left + width / 2 + 20;
+        graphics.drawString(font, "PORTFOLIO", second, y, 0xFFFFDD70, false);
+        graphics.drawString(font, "Premiums: " + premiumTotal(state) + "/50", second, y + 17,
+                0xFFD9C9A9, false);
+        graphics.drawString(font, "Pinnacles: " + pinnacleTotal(state) + "/15", second, y + 31,
+                0xFFD9C9A9, false);
+        graphics.drawString(font, "Vault income: " + format(state.vaultIncome()), second, y + 50,
+                0xFF92CE9D, false);
+        graphics.drawString(font, "Coffer income: " + format(state.cofferIncome()), second, y + 64,
+                0xFFD7BA67, false);
+        graphics.drawString(font, "Market stock: " + state.marketStockStacks() + " stacks", second, y + 78,
+                0xFFD7BA67, false);
+        graphics.drawString(font, "Market activity: " + state.marketActivity(), second, y + 92,
+                0xFFD7BA67, false);
+        graphics.drawString(font, "Contract claims: " + state.contractClaims(), second, y + 106,
+                0xFFE5A79C, false);
+        graphics.drawString(font, "Net worth: TBD", second, y + 126, 0xFF9A8D7A, false);
+        graphics.drawString(font, "G — OPEN POUCH OF MAMMON", second, y + 148, 0xFFFFD95A, false);
+    }
+
+    private void renderDormant(GuiGraphics graphics, int left, int top, int width) {
+        centered(graphics, "NO NATURAL SIN HAS AWAKENED", left + width / 2, top + 76, 0xFFB4AAA3);
+        centered(graphics, "H remains dormant until a Sin claims your soul.", left + width / 2,
+                top + 98, 0xFF81766F);
+        centered(graphics, "G has no Sin ability to invoke.", left + width / 2, top + 114, 0xFF81766F);
+    }
+
+    private void drawIdentity(GuiGraphics graphics, int left, int top, ResourceLocation icon,
+                              String sin, String demon, int accent) {
+        int x = left + 15;
+        int y = top + 36;
+        graphics.fill(x - 4, y - 4, x + 68, y + 91, 0xD0120F10);
+        frame(graphics, x - 4, y - 4, 72, 91, accent);
+        graphics.blit(icon, x, y, 0, 0, 64, 64, 128, 128);
+        centered(graphics, sin, x + 32, y + 67, 0xFFFFFFFF);
+        centered(graphics, demon, x + 32, y + 78, accent);
+    }
+
+    private void trial(GuiGraphics graphics, int x, int y, String name, int current, int required) {
+        graphics.drawString(font, name + ": " + current + "/" + required, x, y,
+                current >= required ? 0xFFFFD95A : 0xFFD8C79F, false);
     }
 
     private String gluttonyStage() {
-        if (AbilityHudOverlay.sinLevel() >= 100) return AbilityHudOverlay.auraActive() ? "BEELZEBUB ACTIVE" : "BEELZEBUB";
+        if (AbilityHudOverlay.sinLevel() >= 100) return AbilityHudOverlay.auraActive()
+                ? "BEELZEBUB ACTIVE" : "BEELZEBUB";
         if (AbilityHudOverlay.sinLevel() >= 50) return "DEVOUR";
         if (AbilityHudOverlay.sinLevel() >= 10) return "SOUL SIPHON";
         return "DORMANT ABILITY";
     }
 
+    private String gluttonyAction() {
+        if (AbilityHudOverlay.sinLevel() >= 100) return "TOGGLE BEELZEBUB";
+        if (AbilityHudOverlay.sinLevel() >= 50) return "DEVOUR";
+        return "SOUL SIPHON";
+    }
+
+    private static int premiumTotal(GreedStatePacket state) {
+        return state.premiumMovement() + state.premiumAttackSpeed() + state.premiumLuck()
+                + state.premiumKnockback() + state.premiumYield();
+    }
+
+    private static int pinnacleTotal(GreedStatePacket state) {
+        return state.compoundInterest() + state.assetAppreciation() + state.contractLevel();
+    }
+
+    private static String format(double value) {
+        if (Math.abs(value - Math.rint(value)) < 0.0001) return String.format("%,.0f", value);
+        return String.format("%,.2f", value);
+    }
+
     private static int accentFor(int sin) {
-        return sin == 1 ? 0xFF9B2335 : sin == 2 ? 0xFFE3B12B : sin == 3 ? 0xFF35B86D : 0xFF4B4542;
+        return sin == 1 ? 0xFF9B2335 : sin == 2 ? 0xFFE3B12B : sin == 3 ? 0xFFD8B642 : 0xFF4B4542;
     }
 
     private static ResourceLocation sigil(String name) {
@@ -139,11 +203,13 @@ public final class SinMenuScreen extends Screen {
             onClose();
             return true;
         }
+        if (keyCode == GLFW.GLFW_KEY_G && AbilityHudOverlay.sinId() > 0) {
+            onClose();
+            ModNetwork.CHANNEL.sendToServer(new SinAbilityPacket());
+            return true;
+        }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
-    @Override
-    public boolean isPauseScreen() {
-        return false;
-    }
+    @Override public boolean isPauseScreen() { return false; }
 }

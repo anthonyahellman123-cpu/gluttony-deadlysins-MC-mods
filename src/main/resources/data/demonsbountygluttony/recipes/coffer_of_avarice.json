@@ -1,9 +1,9 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    "GCN",
+    "NCN",
     "CMC",
-    "NCG"
+    "GCG"
   ],
   "key": {
     "G": { "item": "minecraft:gold_block" },

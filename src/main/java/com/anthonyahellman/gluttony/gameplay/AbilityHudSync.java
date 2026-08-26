@@ -10,6 +10,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.PacketDistributor;
 import com.anthonyahellman.gluttony.greed.AvariceAppraisals;
 import com.anthonyahellman.gluttony.network.AvariceValuesPacket;
+import com.anthonyahellman.gluttony.network.GreedStatePacket;
+import com.anthonyahellman.gluttony.network.PrideStatePacket;
 
 public final class AbilityHudSync {
     private AbilityHudSync() {}
@@ -55,6 +57,29 @@ public final class AbilityHudSync {
                 new AbilityStatePacket(sin.ordinal(), unlocked, evolved, cooldown, recast,
                         level, currentSouls, lifetimeSouls, extractedHealth, extractedAttack,
                         nextLevelSouls, auraActive, avarice));
+        if (sin == SinData.NaturalSin.GREED) sendGreed(player);
+        if (sin == SinData.NaturalSin.PRIDE) sendPride(player);
+    }
+
+    private static void sendGreed(ServerPlayer player) {
+        GreedData greed = GreedData.of(player);
+        ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new GreedStatePacket(
+                greed.avarice(), greed.lifetimeEarned(), greed.lifetimeSpent(),
+                greed.assetsDivested(), greed.vaultIncome(), greed.cofferIncome(),
+                greed.marketActivity(), greed.contractClaims(), greed.marketStockStacks(),
+                greed.coreHealthPurchases(), greed.coreAttackPurchases(), greed.coreArmorPurchases(),
+                greed.premiumMovement(), greed.premiumAttackSpeed(), greed.premiumLuck(),
+                greed.premiumKnockbackResistance(), greed.premiumAvariceYield(),
+                greed.compoundInterestLevel(), greed.assetAppreciationLevel(), greed.contractLevel(),
+                greed.claimsInWindow(), greed.currentClaimCost(), greed.claimResetAt()));
+    }
+
+    private static void sendPride(ServerPlayer player) {
+        PrideData pride = PrideData.of(player);
+        ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new PrideStatePacket(
+                pride.count(PrideData.Trial.ENDER_DRAGON), pride.count(PrideData.Trial.WITHER),
+                pride.count(PrideData.Trial.ELDER_GUARDIAN), pride.count(PrideData.Trial.WARDEN),
+                pride.maxHealthBonus(), pride.attackDamageBonus(), pride.bossDamageBonus()));
     }
 
     public static void sendAppraisals(ServerPlayer player) {

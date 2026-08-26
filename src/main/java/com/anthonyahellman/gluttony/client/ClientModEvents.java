@@ -14,7 +14,7 @@ import org.lwjgl.glfw.GLFW;
 
 @Mod.EventBusSubscriber(modid = GluttonyMod.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class ClientModEvents {
-    public static final KeyMapping SOUL_SIPHON = new KeyMapping(
+    public static final KeyMapping SIN_ABILITY = new KeyMapping(
             "key.demonsbountygluttony.sin_ability",
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_G,
@@ -31,7 +31,7 @@ public final class ClientModEvents {
 
     @SubscribeEvent
     public static void registerKeys(RegisterKeyMappingsEvent event) {
-        event.register(SOUL_SIPHON);
+        event.register(SIN_ABILITY);
         event.register(SIN_STATS);
     }
 
@@ -39,5 +39,7 @@ public final class ClientModEvents {
     public static void clientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> MenuScreens.register(ModMenus.COFFER_OF_AVARICE.get(),
                 CofferOfAvariceScreen::new));
+        event.enqueueWork(() -> MenuScreens.register(ModMenus.POUCH_OF_MAMMON.get(),
+                PouchOfMammonScreen::new));
     }
 }
