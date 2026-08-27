@@ -96,6 +96,8 @@ public final class AbilityHudSync {
         ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
                 new AvariceValuesPacket(AvariceAppraisals.serverSnapshot(),
                         AvariceAppraisals.serverSourceSnapshot(),
-                        AvariceAppraisals.serverRecipeSnapshot()));
+                        AvariceAppraisals.serverRecipeSnapshot(),
+                        AvariceAppraisals.serverFamilySnapshot(),
+                        AvariceAppraisals.serverFamilyPathSnapshot()));
     }
 }

@@ -1,6 +1,7 @@
 package com.anthonyahellman.gluttony.greed;
 
 import com.anthonyahellman.gluttony.GluttonyMod;
+import com.anthonyahellman.gluttony.greed.AppraisalResourceFamilies.ResourceFamily;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -35,18 +36,24 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
     private static final Map<ResourceLocation, Double> ANCHORS = createAnchors();
     private static final Logger LOGGER = LogUtils.getLogger();
     private static volatile Map<ResourceLocation, Double> configuredValues = Map.of();
+    private static volatile Map<ResourceFamily, Double> configuredFamilyValues = Map.of();
     private static volatile Map<ResourceLocation, Double> serverValues = ANCHORS;
     private static volatile Map<ResourceLocation, AppraisalSource> serverSources = anchorSources(ANCHORS);
     private static volatile Map<ResourceLocation, ResourceLocation> serverRecipes = Map.of();
+    private static volatile Map<ResourceLocation, ResourceFamily> serverFamilies = Map.of();
+    private static volatile Map<ResourceLocation, ResourceLocation> serverFamilyPaths = Map.of();
     private static volatile Map<ResourceLocation, Double> clientValues = ANCHORS;
     private static volatile Map<ResourceLocation, AppraisalSource> clientSources = anchorSources(ANCHORS);
     private static volatile Map<ResourceLocation, ResourceLocation> clientRecipes = Map.of();
+    private static volatile Map<ResourceLocation, ResourceFamily> clientFamilies = Map.of();
+    private static volatile Map<ResourceLocation, ResourceLocation> clientFamilyPaths = Map.of();
     private static volatile boolean derivationDirty = true;
 
     public enum AppraisalSource {
         ANCHOR("ANCHOR"),
         RECIPE_DERIVED("RECIPE DERIVED"),
-        CONFIGURED("CONFIGURED");
+        RESOURCE_FAMILY("RESOURCE FAMILY"),
+        CONFIGURED_OVERRIDE("CONFIGURED OVERRIDE");
 
         private final String displayName;
 
@@ -55,7 +62,8 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
     }
 
     public record Inspection(ResourceLocation itemId, boolean appraised, double value,
-                             AppraisalSource source, ResourceLocation recipeId, AssetTier tier,
+                             AppraisalSource source, ResourceFamily resourceFamily,
+                             ResourceLocation resourceFamilyPath, ResourceLocation recipeId, AssetTier tier,
                              String unresolvedReason) {}
 
     private record Candidate(double value, ResourceLocation recipeId) {}
@@ -124,35 +132,46 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
     }
 
     public static Inspection inspectServer(ItemStack stack) {
-        return inspect(stack, serverValues, serverSources, serverRecipes);
+        return inspect(stack, serverValues, serverSources, serverRecipes, serverFamilies, serverFamilyPaths);
     }
 
     public static Inspection inspectClient(ItemStack stack) {
-        return inspect(stack, clientValues, clientSources, clientRecipes);
+        return inspect(stack, clientValues, clientSources, clientRecipes, clientFamilies, clientFamilyPaths);
     }
 
     private static Inspection inspect(ItemStack stack, Map<ResourceLocation, Double> lookup,
                                       Map<ResourceLocation, AppraisalSource> sources,
-                                      Map<ResourceLocation, ResourceLocation> recipes) {
+                                      Map<ResourceLocation, ResourceLocation> recipes,
+                                      Map<ResourceLocation, ResourceFamily> families,
+                                      Map<ResourceLocation, ResourceLocation> familyPaths) {
         ResourceLocation id = stack.isEmpty() ? new ResourceLocation("minecraft", "air")
                 : BuiltInRegistries.ITEM.getKey(stack.getItem());
         double value = stack.isEmpty() ? 0.0 : Math.max(0.0, lookup.getOrDefault(id, 0.0));
         AppraisalSource source = sources.get(id);
+        ResourceFamily family = families.get(id);
         boolean appraised = value > 0.0 && source != null;
-        return new Inspection(id, appraised, value, source, recipes.get(id), tier(value),
-                appraised ? "" : "NO_SUPPORTED_VALUE_PATH");
+        String unresolved = appraised ? "" : family == null
+                ? "NO_SUPPORTED_VALUE_PATH" : "RESOURCE_FAMILY_VALUE_TBD";
+        return new Inspection(id, appraised, value, source, family, familyPaths.get(id),
+                recipes.get(id), tier(value), unresolved);
     }
 
     public static Map<ResourceLocation, Double> serverSnapshot() { return serverValues; }
     public static Map<ResourceLocation, AppraisalSource> serverSourceSnapshot() { return serverSources; }
     public static Map<ResourceLocation, ResourceLocation> serverRecipeSnapshot() { return serverRecipes; }
+    public static Map<ResourceLocation, ResourceFamily> serverFamilySnapshot() { return serverFamilies; }
+    public static Map<ResourceLocation, ResourceLocation> serverFamilyPathSnapshot() { return serverFamilyPaths; }
 
     public static void replaceClientValues(Map<ResourceLocation, Double> syncedValues,
                                            Map<ResourceLocation, AppraisalSource> syncedSources,
-                                           Map<ResourceLocation, ResourceLocation> syncedRecipes) {
+                                           Map<ResourceLocation, ResourceLocation> syncedRecipes,
+                                           Map<ResourceLocation, ResourceFamily> syncedFamilies,
+                                           Map<ResourceLocation, ResourceLocation> syncedFamilyPaths) {
         clientValues = Map.copyOf(syncedValues);
         clientSources = Map.copyOf(syncedSources);
         clientRecipes = Map.copyOf(syncedRecipes);
+        clientFamilies = Map.copyOf(syncedFamilies);
+        clientFamilyPaths = Map.copyOf(syncedFamilyPaths);
         ResourceLocation dirt = new ResourceLocation("minecraft", "dirt");
         LOGGER.info("Roots of Sin client appraisal sync: {} values; dirt={} source={}",
                 clientValues.size(), clientValues.getOrDefault(dirt, 0.0), clientSources.get(dirt));
@@ -166,7 +185,19 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
     public static synchronized void deriveReliableCraftingValues(RecipeManager recipes,
                                                                   RegistryAccess registryAccess) {
         Map<ResourceLocation, Double> anchors = effectiveAnchors();
-        Map<ResourceLocation, Double> working = new HashMap<>(configuredValues);
+        Map<ResourceLocation, ResourceFamily> classifications = AppraisalResourceFamilies.classifyAll();
+        Map<ResourceLocation, Double> familySeeded = new HashMap<>();
+        Map<ResourceLocation, ResourceLocation> familyPaths = new HashMap<>();
+        classifications.forEach((id, family) -> {
+            double familyValue = configuredFamilyValues.getOrDefault(family, 0.0);
+            if (familyValue > 0.0) {
+                familySeeded.put(id, familyValue);
+                familyPaths.put(id, new ResourceLocation(GluttonyMod.MOD_ID,
+                        "family_seed/" + family.name().toLowerCase()));
+            }
+        });
+        Map<ResourceLocation, Double> working = new HashMap<>(familySeeded);
+        working.putAll(configuredValues);
         working.putAll(anchors);
         Map<ResourceLocation, Double> derived = new HashMap<>();
         Map<ResourceLocation, ResourceLocation> derivedRecipes = new HashMap<>();
@@ -174,13 +205,26 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
         int passes = 0;
         do {
             changed = false;
+            AppraisalResourceFamilies.FamilyDerivation familyDerivation =
+                    AppraisalResourceFamilies.deriveEquivalentTagValues(working, classifications);
+            for (Map.Entry<ResourceLocation, Double> familyCandidate
+                    : familyDerivation.values().entrySet()) {
+                if (anchors.containsKey(familyCandidate.getKey())
+                        || configuredValues.containsKey(familyCandidate.getKey())
+                        || working.containsKey(familyCandidate.getKey())) continue;
+                working.put(familyCandidate.getKey(), familyCandidate.getValue());
+                familySeeded.put(familyCandidate.getKey(), familyCandidate.getValue());
+                familyPaths.put(familyCandidate.getKey(),
+                        familyDerivation.paths().get(familyCandidate.getKey()));
+                changed = true;
+            }
             Map<ResourceLocation, Candidate> candidates = new HashMap<>();
             for (Recipe<?> recipe : recipes.getRecipes()) {
                 if (recipe.getType() != RecipeType.CRAFTING || recipe.isSpecial()) continue;
                 ItemStack result = recipe.getResultItem(registryAccess);
                 if (result.isEmpty()) continue;
                 ResourceLocation resultId = BuiltInRegistries.ITEM.getKey(result.getItem());
-                if (anchors.containsKey(resultId)) continue;
+                if (anchors.containsKey(resultId) || configuredValues.containsKey(resultId)) continue;
                 double ingredientTotal = 0.0;
                 boolean reliable = true;
                 for (Ingredient ingredient : recipe.getIngredients()) {
@@ -218,20 +262,26 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
             }
             passes++;
         } while (changed && passes < 64);
-        Map<ResourceLocation, Double> resolved = new HashMap<>(configuredValues);
+        Map<ResourceLocation, Double> resolved = new HashMap<>(familySeeded);
         resolved.putAll(derived);
+        resolved.putAll(configuredValues);
         resolved.putAll(anchors);
         Map<ResourceLocation, AppraisalSource> sources = new HashMap<>();
-        configuredValues.keySet().forEach(id -> sources.put(id, AppraisalSource.CONFIGURED));
+        familySeeded.keySet().forEach(id -> sources.put(id, AppraisalSource.RESOURCE_FAMILY));
         derived.keySet().forEach(id -> sources.put(id, AppraisalSource.RECIPE_DERIVED));
+        configuredValues.keySet().forEach(id -> sources.put(id, AppraisalSource.CONFIGURED_OVERRIDE));
         anchors.keySet().forEach(id -> sources.put(id, AppraisalSource.ANCHOR));
         serverValues = Map.copyOf(resolved);
         serverSources = Map.copyOf(sources);
         serverRecipes = Map.copyOf(derivedRecipes);
+        serverFamilies = classifications;
+        serverFamilyPaths = Map.copyOf(familyPaths);
         derivationDirty = false;
         ResourceLocation dirt = new ResourceLocation("minecraft", "dirt");
-        LOGGER.info("Roots of Sin appraisal ready: {} anchors, {} configured, {} recipe-derived, {} total values",
-                anchors.size(), configuredValues.size(), derived.size(), serverValues.size());
+        LOGGER.info("Roots of Sin appraisal ready: {} anchors, {} configured overrides, {} family seeds, "
+                        + "{} recipe-derived, {} classified family items, {} total values",
+                anchors.size(), configuredValues.size(), familySeeded.size(), derived.size(),
+                classifications.size(), serverValues.size());
         LOGGER.info("Roots of Sin server appraisal audit: dirt={} source={}",
                 serverValues.getOrDefault(dirt, 0.0), serverSources.get(dirt));
     }
@@ -240,8 +290,16 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
     protected void apply(Map<ResourceLocation, JsonElement> objects, ResourceManager manager,
                          ProfilerFiller profiler) {
         Map<ResourceLocation, Double> loaded = new HashMap<>();
+        Map<ResourceFamily, Double> loadedFamilyValues = new HashMap<>();
         for (Map.Entry<ResourceLocation, JsonElement> entry : objects.entrySet()) {
             JsonObject json = entry.getValue().getAsJsonObject();
+            if (json.has("family_values") && json.get("family_values").isJsonObject()) {
+                for (Map.Entry<String, JsonElement> familyEntry
+                        : json.getAsJsonObject("family_values").entrySet()) {
+                    putFamilyIfValid(loadedFamilyValues, familyEntry.getKey(),
+                            familyEntry.getValue().getAsDouble());
+                }
+            }
             if (json.has("values") && json.get("values").isJsonObject()) {
                 for (Map.Entry<String, JsonElement> valueEntry : json.getAsJsonObject("values").entrySet()) {
                     putIfValid(loaded, ResourceLocation.tryParse(valueEntry.getKey()),
@@ -253,15 +311,27 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
             }
         }
         configuredValues = Map.copyOf(loaded);
+        configuredFamilyValues = Map.copyOf(loadedFamilyValues);
         Map<ResourceLocation, Double> initial = new HashMap<>(configuredValues);
         initial.putAll(effectiveAnchors());
         serverValues = Map.copyOf(initial);
         Map<ResourceLocation, AppraisalSource> initialSources = new HashMap<>();
-        configuredValues.keySet().forEach(id -> initialSources.put(id, AppraisalSource.CONFIGURED));
+        configuredValues.keySet().forEach(id -> initialSources.put(id, AppraisalSource.CONFIGURED_OVERRIDE));
         effectiveAnchors().keySet().forEach(id -> initialSources.put(id, AppraisalSource.ANCHOR));
         serverSources = Map.copyOf(initialSources);
         serverRecipes = Map.of();
+        serverFamilies = AppraisalResourceFamilies.classifyAll();
+        serverFamilyPaths = Map.of();
         derivationDirty = true;
+    }
+
+    private static void putFamilyIfValid(Map<ResourceFamily, Double> target, String familyName, double value) {
+        try {
+            ResourceFamily family = ResourceFamily.valueOf(familyName.toUpperCase());
+            if (value > 0.0 && Double.isFinite(value)) target.put(family, value);
+        } catch (IllegalArgumentException ignored) {
+            LOGGER.warn("Ignoring unknown Roots of Sin appraisal resource family '{}'", familyName);
+        }
     }
 
     private static void putIfValid(Map<ResourceLocation, Double> target, ResourceLocation itemId, double value) {

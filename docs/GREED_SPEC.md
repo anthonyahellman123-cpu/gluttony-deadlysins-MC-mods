@@ -81,6 +81,29 @@ All three Pinnacles are passive, capped at Level 5, and add no keybinds.
   Beef has no supported value-producing crafting path, while Leather's vanilla Rabbit Hide recipe begins from another
   unresolved item. No placeholder values are invented for either item.
 
+### Resource families
+
+Exactly six appraisal resource families are locked: Mob Drop, Boss Drop, Ingot/Metal, Ore/Raw Resource,
+Crop/Natural Resource, and Wood. They classify intrinsic item identity, never the event that produced a stack.
+Boss-exclusive classification outranks specialized material families; specialized families outrank ordinary Mob Drop;
+ordinary Mob Drop outranks Crop/Natural Resource. Explicit anchors/overrides remain authoritative.
+
+- Forge/Common tags classify ingots, ores, raw materials, gems, crops, seeds, raw meats, leather, feathers, bones,
+  string, and similar tagged modded resources. Minecraft log tags preserve Wood behavior.
+- Six extension tags under `demonsbountygluttony:appraisal/<family>` let datapacks classify unusual modded assets,
+  especially boss-exclusive materials, without relying on display-name guesses.
+- A specific material tag such as `forge:ingots/copper` may propagate a value only when every already-valued member
+  unanimously agrees. Generic umbrella tags with mixed values never propagate a price.
+- Optional datapack `family_values` can seed a family after its baseline is intentionally designed. The mod ships with
+  no family baseline constants because Mob Drop, Boss Drop, Ingot, Ore, Crop, and Wood prices are currently TBD.
+- Classification without a safe seed reports `RESOURCE_FAMILY_VALUE_TBD`, remains unsellable/unvaultable, and exposes
+  the family in tooltips and `/greed appraise`. Items with no classification or supported path continue to report
+  `NO_SUPPORTED_VALUE_PATH`.
+
+Appraisal priority is: Anchor/Configured Override, then reliable Recipe Derived value, then Resource Family value,
+then unresolved. Source metadata is `ANCHOR`, `CONFIGURED_OVERRIDE`, `RECIPE_DERIVED`, or `RESOURCE_FAMILY`, with the
+specific family and family tag/seed path synchronized to the client.
+
 Tiers are appraisal-based: T1 0–9.99, T2 10–24.99, T3 25–74.99, T4 75–499.99, and T5 500+ Avarice.
 The full locked vanilla anchor table is installed in `AvariceAppraisals`.
 
@@ -140,5 +163,7 @@ Recipe:
 - Core, Premium, Contract, Asset Appreciation, and Compound Interest mechanics: implemented in 0.11.0.
 - Locked anchors, hybrid recipe derivation, arbitrage-safe cheapest paths, five Asset Tiers, split server/client
   authorities, and source-aware diagnostics: implemented in 0.11.2.
+- Six-family classification, deterministic material-tag equivalence, datapack family extension tags, family seed hooks,
+  and family-aware diagnostics: implemented in 0.11.3. Family balance constants remain intentionally TBD.
 - Vault block, owner persistence, slot purchasing, tier rules, payouts, diversification, and UI: implemented in 0.11.0.
 - Customer Market transactions and visual/sound polish remain later work because their exact rules are still TBD.

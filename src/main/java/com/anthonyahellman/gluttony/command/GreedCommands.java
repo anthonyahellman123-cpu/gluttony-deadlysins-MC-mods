@@ -58,6 +58,16 @@ public final class GreedCommands {
         if (!appraisal.appraised()) {
             player.displayClientMessage(Component.literal("Status: UNRESOLVED")
                     .withStyle(ChatFormatting.RED), false);
+            if (appraisal.resourceFamily() != null) {
+                player.displayClientMessage(Component.literal("Resource Family: "
+                                + appraisal.resourceFamily().name())
+                        .withStyle(ChatFormatting.YELLOW), false);
+            }
+            if (appraisal.resourceFamilyPath() != null) {
+                player.displayClientMessage(Component.literal("Family Path: "
+                                + appraisal.resourceFamilyPath())
+                        .withStyle(ChatFormatting.DARK_GRAY), false);
+            }
             player.displayClientMessage(Component.literal("Reason: " + appraisal.unresolvedReason())
                     .withStyle(ChatFormatting.GRAY), false);
             return 0;
@@ -68,6 +78,16 @@ public final class GreedCommands {
                 .withStyle(ChatFormatting.GOLD), false);
         player.displayClientMessage(Component.literal("Source: " + appraisal.source().name())
                 .withStyle(ChatFormatting.YELLOW), false);
+        if (appraisal.resourceFamily() != null) {
+            player.displayClientMessage(Component.literal("Resource Family: "
+                            + appraisal.resourceFamily().name())
+                    .withStyle(ChatFormatting.YELLOW), false);
+        }
+        if (appraisal.resourceFamilyPath() != null) {
+            player.displayClientMessage(Component.literal("Family Path: "
+                            + appraisal.resourceFamilyPath())
+                    .withStyle(ChatFormatting.DARK_GRAY), false);
+        }
         if (appraisal.recipeId() != null) {
             player.displayClientMessage(Component.literal("Recipe: " + appraisal.recipeId())
                     .withStyle(ChatFormatting.DARK_GRAY), false);

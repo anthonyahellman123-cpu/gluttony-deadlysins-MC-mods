@@ -48,6 +48,16 @@ public final class ClientForgeEvents {
         if (!appraisal.appraised()) {
             event.getToolTip().add(Component.literal("Appraisal: VALUE TBD")
                     .withStyle(ChatFormatting.DARK_GRAY));
+            if (appraisal.resourceFamily() != null) {
+                event.getToolTip().add(Component.literal("Resource Family: "
+                                + appraisal.resourceFamily().displayName())
+                        .withStyle(ChatFormatting.YELLOW));
+            }
+            if (appraisal.resourceFamilyPath() != null) {
+                event.getToolTip().add(Component.literal("Family Path: "
+                                + appraisal.resourceFamilyPath())
+                        .withStyle(ChatFormatting.DARK_GRAY));
+            }
             event.getToolTip().add(Component.literal("Reason: " + appraisal.unresolvedReason())
                     .withStyle(ChatFormatting.DARK_GRAY));
             event.getToolTip().add(Component.literal("Cannot Divest or Vault")
@@ -64,6 +74,16 @@ public final class ClientForgeEvents {
                 .withStyle(ChatFormatting.DARK_GREEN));
         event.getToolTip().add(Component.literal("Source: " + appraisal.source().displayName())
                 .withStyle(ChatFormatting.GRAY));
+        if (appraisal.resourceFamily() != null) {
+            event.getToolTip().add(Component.literal("Resource Family: "
+                            + appraisal.resourceFamily().displayName())
+                    .withStyle(ChatFormatting.YELLOW));
+        }
+        if (appraisal.resourceFamilyPath() != null) {
+            event.getToolTip().add(Component.literal("Family Path: "
+                            + appraisal.resourceFamilyPath())
+                    .withStyle(ChatFormatting.DARK_GRAY));
+        }
         if (appraisal.recipeId() != null) {
             event.getToolTip().add(Component.literal("Recipe: " + appraisal.recipeId())
                     .withStyle(ChatFormatting.DARK_GRAY));

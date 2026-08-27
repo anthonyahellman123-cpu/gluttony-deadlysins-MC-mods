@@ -1,6 +1,7 @@
 package com.anthonyahellman.gluttony.network;
 
 import com.anthonyahellman.gluttony.greed.AvariceAppraisals;
+import com.anthonyahellman.gluttony.greed.AppraisalResourceFamilies.ResourceFamily;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
@@ -15,7 +16,9 @@ import java.util.function.Supplier;
 
 public record AvariceValuesPacket(Map<ResourceLocation, Double> values,
                                   Map<ResourceLocation, AvariceAppraisals.AppraisalSource> sources,
-                                  Map<ResourceLocation, ResourceLocation> recipes) {
+                                  Map<ResourceLocation, ResourceLocation> recipes,
+                                  Map<ResourceLocation, ResourceFamily> families,
+                                  Map<ResourceLocation, ResourceLocation> familyPaths) {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public static void encode(AvariceValuesPacket packet, FriendlyByteBuf buffer) {
@@ -24,11 +27,19 @@ public record AvariceValuesPacket(Map<ResourceLocation, Double> values,
             buffer.writeResourceLocation(id);
             buffer.writeDouble(value);
             AvariceAppraisals.AppraisalSource source = packet.sources.getOrDefault(id,
-                    AvariceAppraisals.AppraisalSource.CONFIGURED);
+                    AvariceAppraisals.AppraisalSource.CONFIGURED_OVERRIDE);
             buffer.writeEnum(source);
             ResourceLocation recipe = packet.recipes.get(id);
             buffer.writeBoolean(recipe != null);
             if (recipe != null) buffer.writeResourceLocation(recipe);
+        });
+        buffer.writeVarInt(packet.families.size());
+        packet.families.forEach((id, family) -> {
+            buffer.writeResourceLocation(id);
+            buffer.writeEnum(family);
+            ResourceLocation familyPath = packet.familyPaths.get(id);
+            buffer.writeBoolean(familyPath != null);
+            if (familyPath != null) buffer.writeResourceLocation(familyPath);
         });
     }
 
@@ -37,20 +48,29 @@ public record AvariceValuesPacket(Map<ResourceLocation, Double> values,
         Map<ResourceLocation, Double> values = new HashMap<>();
         Map<ResourceLocation, AvariceAppraisals.AppraisalSource> sources = new HashMap<>();
         Map<ResourceLocation, ResourceLocation> recipes = new HashMap<>();
+        Map<ResourceLocation, ResourceFamily> families = new HashMap<>();
+        Map<ResourceLocation, ResourceLocation> familyPaths = new HashMap<>();
         for (int i = 0; i < size; i++) {
             ResourceLocation id = buffer.readResourceLocation();
             values.put(id, Math.max(0.0, buffer.readDouble()));
             sources.put(id, buffer.readEnum(AvariceAppraisals.AppraisalSource.class));
             if (buffer.readBoolean()) recipes.put(id, buffer.readResourceLocation());
         }
-        return new AvariceValuesPacket(values, sources, recipes);
+        int familyCount = buffer.readVarInt();
+        for (int i = 0; i < familyCount; i++) {
+            ResourceLocation id = buffer.readResourceLocation();
+            families.put(id, buffer.readEnum(ResourceFamily.class));
+            if (buffer.readBoolean()) familyPaths.put(id, buffer.readResourceLocation());
+        }
+        return new AvariceValuesPacket(values, sources, recipes, families, familyPaths);
     }
 
     public static void handle(AvariceValuesPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
         NetworkEvent.Context context = contextSupplier.get();
         context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
                 () -> () -> {
-                    AvariceAppraisals.replaceClientValues(packet.values, packet.sources, packet.recipes);
+                    AvariceAppraisals.replaceClientValues(packet.values, packet.sources,
+                            packet.recipes, packet.families, packet.familyPaths);
                     ResourceLocation dirt = new ResourceLocation("minecraft", "dirt");
                     LOGGER.info("Roots of Sin packet received: {} appraisals; dirt={}",
                             packet.values.size(), packet.values.getOrDefault(dirt, 0.0));
