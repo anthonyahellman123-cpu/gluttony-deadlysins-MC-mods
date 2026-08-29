@@ -46,11 +46,18 @@ public final class AppraisalResourceFamilies {
             Map.entry("crops", ResourceFamily.CROP),
             Map.entry("seeds", ResourceFamily.CROP),
             Map.entry("raw_meats", ResourceFamily.MOB_DROP),
+            Map.entry("boss_drops", ResourceFamily.BOSS_DROP),
             Map.entry("leather", ResourceFamily.MOB_DROP),
             Map.entry("feathers", ResourceFamily.MOB_DROP),
             Map.entry("bones", ResourceFamily.MOB_DROP),
             Map.entry("string", ResourceFamily.MOB_DROP),
-            Map.entry("mob_drops", ResourceFamily.MOB_DROP)
+            Map.entry("mob_drops", ResourceFamily.MOB_DROP),
+            Map.entry("eggs", ResourceFamily.MOB_DROP),
+            Map.entry("ender_pearls", ResourceFamily.MOB_DROP),
+            Map.entry("gunpowder", ResourceFamily.MOB_DROP),
+            Map.entry("slimeballs", ResourceFamily.MOB_DROP),
+            Map.entry("logs", ResourceFamily.WOOD),
+            Map.entry("woods", ResourceFamily.WOOD)
     );
 
     private AppraisalResourceFamilies() {}
@@ -148,6 +155,9 @@ public final class AppraisalResourceFamilies {
         if (tagId.getNamespace().equals("minecraft")
                 && (path.equals("logs") || path.equals("logs_that_burn"))) return ResourceFamily.WOOD;
         if (!tagId.getNamespace().equals("forge") && !tagId.getNamespace().equals("c")) return null;
+        if (path.equals("foods/raw_meat") || path.equals("foods/raw_meats")) {
+            return ResourceFamily.MOB_DROP;
+        }
         String root = path.indexOf('/') < 0 ? path : path.substring(0, path.indexOf('/'));
         return STANDARD_TAG_ROOTS.get(root);
     }
