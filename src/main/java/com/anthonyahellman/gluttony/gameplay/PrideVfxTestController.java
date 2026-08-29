@@ -10,6 +10,7 @@ import net.minecraft.world.entity.item.PrimedTnt;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
@@ -44,13 +45,26 @@ public final class PrideVfxTestController {
         PrimedTnt actor = new PrimedTnt(level, x, startY, z, player);
         actor.addTag(TEST_ACTOR_TAG);
         actor.setFuse(Integer.MAX_VALUE);
+        actor.setInvulnerable(true);
         actor.setNoGravity(true);
         actor.setDeltaMovement(0.0, -0.38, 0.0);
-        level.addFreshEntity(actor);
         ACTIVE.put(actor.getUUID(), new ActiveTest(actor));
+        if (!level.addFreshEntity(actor)) {
+            ACTIVE.remove(actor.getUUID());
+            actor.discard();
+            return;
+        }
         sendNear(level, x, startY, z,
                 new PrideVfxTestPacket(PrideVfxTestPacket.START_DESCENT,
                         actor.getId(), x, startY, z));
+    }
+
+    @SubscribeEvent
+    public static void entityJoin(EntityJoinLevelEvent event) {
+        if (event.getLevel().isClientSide || !(event.getEntity() instanceof PrimedTnt actor)
+                || !actor.getTags().contains(TEST_ACTOR_TAG)) return;
+        // A server stop during the disposable sequence cannot leave an inert test actor behind.
+        if (!ACTIVE.containsKey(actor.getUUID())) actor.discard();
     }
 
     @SubscribeEvent
