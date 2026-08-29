@@ -2,11 +2,10 @@ package com.anthonyahellman.gluttony.client;
 
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.network.PrideVfxTestPacket;
+import com.anthonyahellman.gluttony.registry.ModParticles;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
@@ -15,7 +14,6 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import org.joml.Vector3f;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -24,16 +22,6 @@ import java.util.Map;
 /** Client-only disposable Stage V visual ceiling for /pride_vfx_test. */
 @Mod.EventBusSubscriber(modid = GluttonyMod.MOD_ID, value = Dist.CLIENT)
 public final class PrideVfxClientEffect {
-    private static final Vector3f RADIANT_WHITE = rgb(255, 250, 225);
-    private static final Vector3f BRILLIANT_GOLD = rgb(255, 190, 40);
-    private static final Vector3f DEEP_GOLD = rgb(180, 105, 15);
-    private static final Vector3f BLACKENED_GOLD = rgb(30, 20, 10);
-    private static final DustParticleOptions WHITE = new DustParticleOptions(RADIANT_WHITE, 1.35F);
-    private static final DustParticleOptions WHITE_SMALL = new DustParticleOptions(RADIANT_WHITE, 0.75F);
-    private static final DustParticleOptions GOLD = new DustParticleOptions(BRILLIANT_GOLD, 1.25F);
-    private static final DustParticleOptions GOLD_SMALL = new DustParticleOptions(BRILLIANT_GOLD, 0.68F);
-    private static final DustParticleOptions DEEP = new DustParticleOptions(DEEP_GOLD, 1.12F);
-    private static final DustParticleOptions BLACKENED = new DustParticleOptions(BLACKENED_GOLD, 1.28F);
     private static final int MAIN_RING_SAMPLES = 88;
     private static final int ECHO_RING_SAMPLES = 36;
     private static final int RING_TICKS = 44;
@@ -78,14 +66,14 @@ public final class PrideVfxClientEffect {
 
             int core = 4 + (int)(5 * intensity);
             for (int i = 0; i < core; i++) {
-                add(level, WHITE, center.x + spread(0.33), center.y + spread(0.34),
+                add(level, mote(), center.x + spread(0.33), center.y + spread(0.34),
                         center.z + spread(0.33), 0.0, 0.035, 0.0);
             }
             int trail = 7 + (int)(9 * intensity);
             for (int i = 0; i < trail; i++) {
                 double height = 0.7 + RANDOM.nextDouble() * (3.5 + intensity * 4.5);
-                ParticleOptions color = RANDOM.nextFloat() < 0.46F ? WHITE_SMALL : GOLD_SMALL;
-                add(level, color, center.x + spread(0.42 + height * 0.025), center.y + height,
+                ParticleOptions sprite = RANDOM.nextFloat() < 0.46F ? mote() : streak();
+                add(level, sprite, center.x + spread(0.42 + height * 0.025), center.y + height,
                         center.z + spread(0.42 + height * 0.025), 0.0, 0.045, 0.0);
             }
 
@@ -94,13 +82,13 @@ public final class PrideVfxClientEffect {
                 for (int feather = 0; feather < 4; feather++) {
                     double rise = 0.65 + feather * 0.55;
                     double width = side * (0.55 + feather * 0.18);
-                    add(level, feather < 2 ? WHITE_SMALL : GOLD_SMALL,
+                    add(level, feather < 2 ? mote() : streak(),
                             center.x + width, center.y + rise, center.z + spread(0.12),
                             side * 0.018, 0.035, 0.0);
                 }
             }
             if (descent.age % 2 == 0) {
-                add(level, ParticleTypes.END_ROD, center.x + spread(0.24), center.y + 0.2,
+                add(level, streak(), center.x + spread(0.24), center.y + 0.2,
                         center.z + spread(0.24), 0.0, 0.08, 0.0);
             }
         }
@@ -125,13 +113,13 @@ public final class PrideVfxClientEffect {
     }
 
     private static void impactFlash(ClientLevel level, Vec3 origin) {
-        add(level, ParticleTypes.FLASH, origin.x, origin.y + 0.45, origin.z, 0.0, 0.0, 0.0);
+        add(level, mote(), origin.x, origin.y + 0.45, origin.z, 0.0, 0.0, 0.0);
         for (int i = 0; i < 72; i++) {
             double angle = RANDOM.nextDouble() * Math.PI * 2.0;
             double speed = 0.16 + RANDOM.nextDouble() * 0.62;
             double vertical = 0.05 + RANDOM.nextDouble() * 0.42;
-            ParticleOptions color = i % 3 == 0 ? WHITE : GOLD;
-            add(level, color, origin.x + spread(0.35), origin.y + 0.25 + spread(0.18),
+            ParticleOptions sprite = i % 3 == 0 ? mote() : streak();
+            add(level, sprite, origin.x + spread(0.35), origin.y + 0.25 + spread(0.18),
                     origin.z + spread(0.35), Math.cos(angle) * speed, vertical,
                     Math.sin(angle) * speed);
         }
@@ -141,8 +129,8 @@ public final class PrideVfxClientEffect {
         int count = 24 - age * 3;
         for (int i = 0; i < count; i++) {
             double height = RANDOM.nextDouble() * (7.5 - age * 0.5);
-            ParticleOptions color = RANDOM.nextBoolean() ? WHITE : GOLD;
-            add(level, color, origin.x + spread(0.48), origin.y + height,
+            ParticleOptions sprite = RANDOM.nextBoolean() ? mote() : streak();
+            add(level, sprite, origin.x + spread(0.48), origin.y + height,
                     origin.z + spread(0.48), 0.0, 0.08 + RANDOM.nextDouble() * 0.09, 0.0);
         }
     }
@@ -155,13 +143,13 @@ public final class PrideVfxClientEffect {
         for (int point = 0; point < MAIN_RING_SAMPLES; point++) {
             double angle = Math.PI * 2.0 * (point + RANDOM.nextDouble() * 0.22) / MAIN_RING_SAMPLES;
             double roll = RANDOM.nextDouble();
-            ParticleOptions color;
-            if (roll < 0.11) color = GOLD; // bright veins remain visible at the blackened edge
-            else if (roll < darkChance) color = BLACKENED;
-            else if (roll < darkChance + deepChance) color = DEEP;
-            else color = GOLD;
+            ParticleOptions sprite;
+            if (roll < 0.11) sprite = ember(); // bright veins remain visible at the blackened edge
+            else if (roll < darkChance) sprite = shard();
+            else if (roll < darkChance + deepChance) sprite = shard();
+            else sprite = ember();
             double jitter = spread(0.22 + progress * 0.22);
-            add(level, color, origin.x + Math.cos(angle) * radius + jitter,
+            add(level, sprite, origin.x + Math.cos(angle) * radius + jitter,
                     origin.y + 0.18 + spread(0.09),
                     origin.z + Math.sin(angle) * radius + jitter,
                     Math.cos(angle) * 0.025, 0.008, Math.sin(angle) * 0.025);
@@ -170,7 +158,7 @@ public final class PrideVfxClientEffect {
             double echoRadius = Math.max(0.8, radius - 1.35);
             for (int point = 0; point < ECHO_RING_SAMPLES; point++) {
                 double angle = Math.PI * 2.0 * point / ECHO_RING_SAMPLES;
-                add(level, GOLD_SMALL, origin.x + Math.cos(angle) * echoRadius,
+                add(level, ember(), origin.x + Math.cos(angle) * echoRadius,
                         origin.y + 0.11, origin.z + Math.sin(angle) * echoRadius,
                         0.0, 0.006, 0.0);
             }
@@ -182,8 +170,8 @@ public final class PrideVfxClientEffect {
         for (int i = 0; i < count; i++) {
             double radius = RANDOM.nextDouble() * 4.5;
             double angle = RANDOM.nextDouble() * Math.PI * 2.0;
-            ParticleOptions color = RANDOM.nextFloat() < 0.72F ? GOLD_SMALL : BLACKENED;
-            add(level, color, origin.x + Math.cos(angle) * radius,
+            ParticleOptions sprite = RANDOM.nextFloat() < 0.72F ? ember() : shard();
+            add(level, sprite, origin.x + Math.cos(angle) * radius,
                     origin.y + 0.18 + RANDOM.nextDouble() * 1.6,
                     origin.z + Math.sin(angle) * radius,
                     0.0, 0.018 + RANDOM.nextDouble() * 0.035, 0.0);
@@ -199,8 +187,20 @@ public final class PrideVfxClientEffect {
         return (RANDOM.nextDouble() * 2.0 - 1.0) * radius;
     }
 
-    private static Vector3f rgb(int red, int green, int blue) {
-        return new Vector3f(red / 255.0F, green / 255.0F, blue / 255.0F);
+    private static ParticleOptions mote() {
+        return ModParticles.PRIDE_RADIANT_MOTE.get();
+    }
+
+    private static ParticleOptions streak() {
+        return ModParticles.PRIDE_RADIANT_STREAK.get();
+    }
+
+    private static ParticleOptions shard() {
+        return ModParticles.PRIDE_BLACKENED_GOLD_SHARD.get();
+    }
+
+    private static ParticleOptions ember() {
+        return ModParticles.PRIDE_GOLDEN_EMBER.get();
     }
 
     private static final class Descent {

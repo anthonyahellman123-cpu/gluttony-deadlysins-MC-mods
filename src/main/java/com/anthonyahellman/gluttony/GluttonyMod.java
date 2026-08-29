@@ -4,6 +4,7 @@ import com.anthonyahellman.gluttony.registry.ModItems;
 import com.anthonyahellman.gluttony.registry.ModBlocks;
 import com.anthonyahellman.gluttony.registry.ModBlockEntities;
 import com.anthonyahellman.gluttony.registry.ModMenus;
+import com.anthonyahellman.gluttony.registry.ModParticles;
 import com.anthonyahellman.gluttony.network.ModNetwork;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
@@ -20,6 +21,7 @@ public final class GluttonyMod {
         ModItems.ITEMS.register(modBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modBus);
         ModMenus.MENUS.register(modBus);
+        ModParticles.PARTICLES.register(modBus);
         ModNetwork.register();
         modBus.addListener(this::addCreativeTabContents);
     }
