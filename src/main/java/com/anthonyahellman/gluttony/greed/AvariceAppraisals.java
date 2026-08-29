@@ -20,6 +20,7 @@ import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.SmithingTransformRecipe;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.OnDatapackSyncEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -303,13 +304,14 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
                                                                       Map<ResourceLocation, Double> overrides) {
         Map<ResourceLocation, Candidate> candidates = new HashMap<>();
         for (Recipe<?> recipe : recipes.getRecipes()) {
-            if (recipe.getType() != RecipeType.CRAFTING || recipe.isSpecial()) continue;
+            if (!supportsAppraisalDerivation(recipe)) continue;
             ItemStack result = recipe.getResultItem(registryAccess);
             if (result.isEmpty()) continue;
             ResourceLocation resultId = BuiltInRegistries.ITEM.getKey(result.getItem());
             if (anchors.containsKey(resultId) || overrides.containsKey(resultId)) continue;
             double ingredientTotal = 0.0;
             boolean reliable = true;
+            int ingredientIndex = 0;
             for (Ingredient ingredient : recipe.getIngredients()) {
                 if (ingredient.isEmpty()) continue;
                 ItemStack[] choices = ingredient.getItems();
@@ -318,14 +320,37 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
                 for (ItemStack choice : choices) {
                     ResourceLocation choiceId = BuiltInRegistries.ITEM.getKey(choice.getItem());
                     double choiceValue = working.getOrDefault(choiceId, 0.0);
-                    if (choiceValue <= 0.0) {
-                        reliable = false;
-                        break;
+                    if (choiceValue > 0.0) {
+                        double consumedValue = choiceValue;
+                        if (choice.hasCraftingRemainingItem()) {
+                            ItemStack remainder = choice.getCraftingRemainingItem();
+                            ResourceLocation remainderId = remainder.isEmpty() ? null
+                                    : BuiltInRegistries.ITEM.getKey(remainder.getItem());
+                            double returnedValue = remainderId == null ? 0.0
+                                    : working.getOrDefault(remainderId, 0.0);
+                            // An unknown returned container must never inflate the output.
+                            consumedValue = returnedValue > 0.0
+                                    ? Math.max(0.0, choiceValue - returnedValue) : 0.0;
+                        }
+                        cheapestChoice = Math.min(cheapestChoice, consumedValue);
+                    } else if (choice.hasCraftingRemainingItem()) {
+                        // Reusable/tooling ingredients have zero conservative consumption cost.
+                        cheapestChoice = 0.0;
                     }
-                    cheapestChoice = Math.min(cheapestChoice, choiceValue);
                 }
-                if (!reliable || !Double.isFinite(cheapestChoice)) break;
+                if (!Double.isFinite(cheapestChoice)) {
+                    // Vanilla smithing templates are consumed, but most have no supported value
+                    // path. Omitting only the unresolved template slot safely under-appraises the
+                    // transform instead of blocking every Netherite upgrade or inventing a price.
+                    if (recipe instanceof SmithingTransformRecipe && ingredientIndex == 0) {
+                        ingredientIndex++;
+                        continue;
+                    }
+                    reliable = false;
+                    break;
+                }
                 ingredientTotal += cheapestChoice;
+                ingredientIndex++;
             }
             if (reliable && ingredientTotal > 0.0) {
                 Candidate candidate = new Candidate(ingredientTotal / Math.max(1, result.getCount()),
@@ -335,6 +360,17 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
             }
         }
         return candidates;
+    }
+
+    private static boolean supportsAppraisalDerivation(Recipe<?> recipe) {
+        if (recipe.isSpecial()) return false;
+        RecipeType<?> type = recipe.getType();
+        return type == RecipeType.CRAFTING
+                || type == RecipeType.SMELTING
+                || type == RecipeType.SMOKING
+                || type == RecipeType.CAMPFIRE_COOKING
+                || type == RecipeType.BLASTING
+                || (type == RecipeType.SMITHING && recipe instanceof SmithingTransformRecipe);
     }
 
     @Override
