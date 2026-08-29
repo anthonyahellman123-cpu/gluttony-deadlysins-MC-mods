@@ -77,7 +77,8 @@ public final class Beelzebub {
 
         for (LivingEntity target : player.level().getEntitiesOfClass(LivingEntity.class,
                 player.getBoundingBox().inflate(radius), entity -> entity != player && entity.isAlive()
-                        && !entity.isSpectator() && entity.distanceToSqr(player) <= radius * radius)) {
+                        && !entity.isSpectator() && entity.distanceToSqr(player) <= radius * radius
+                        && data.allowsTarget(GluttonyData.Ability.BEELZEBUB, entity))) {
             long activation = player.getPersistentData().getLong(ACTIVATION);
             String firstBiteKey = "RootsOfSinBeelzebubFirstBite_" + player.getStringUUID();
             boolean firstBite = target.getPersistentData().getLong(firstBiteKey) != activation;

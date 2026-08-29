@@ -12,12 +12,14 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.glfw.GLFW;
 import com.anthonyahellman.gluttony.network.GluttonyAbilitySelectionPacket;
+import com.anthonyahellman.gluttony.network.GluttonyTargetModePacket;
 
 public final class SinMenuScreen extends Screen {
     private static final ResourceLocation GLUTTONY = sigil("gluttony");
     private static final ResourceLocation PRIDE = sigil("pride");
     private static final ResourceLocation GREED = sigil("greed");
     private final Button[] gluttonyAbilityButtons = new Button[3];
+    private final Button[][] gluttonyTargetButtons = new Button[3][3];
 
     public SinMenuScreen() { super(Component.literal("The Roots of Sin")); }
 
@@ -31,6 +33,8 @@ public final class SinMenuScreen extends Screen {
         int top = (height - panelHeight) / 2;
         String[] names = {"SOUL SIPHON", "DEVOUR", "BEELZEBUB"};
         int[] levels = {10, 50, 100};
+        String[] modes = {"MOBS", "BOTH", "PLAYERS"};
+        int[] modeWidths = {36, 36, 42};
         for (int index = 0; index < names.length; index++) {
             final int selected = index;
             Button button = Button.builder(Component.literal(names[index]), ignored ->
@@ -38,6 +42,17 @@ public final class SinMenuScreen extends Screen {
                     .bounds(left + 92 + index * 128, top + 150, 118, 20).build();
             button.active = AbilityHudOverlay.sinLevel() >= levels[index];
             gluttonyAbilityButtons[index] = addRenderableWidget(button);
+            int modeX = left + 92 + index * 128;
+            for (int mode = 0; mode < modes.length; mode++) {
+                final int selectedMode = mode;
+                Button targetButton = Button.builder(Component.literal(modes[mode]), ignored ->
+                        ModNetwork.CHANNEL.sendToServer(
+                                new GluttonyTargetModePacket(selected, selectedMode)))
+                        .bounds(modeX + (mode == 0 ? 0 : mode == 1 ? 38 : 76),
+                                top + 173, modeWidths[mode], 16).build();
+                targetButton.active = AbilityHudOverlay.sinLevel() >= levels[index];
+                gluttonyTargetButtons[index][mode] = addRenderableWidget(targetButton);
+            }
         }
     }
 
@@ -90,6 +105,13 @@ public final class SinMenuScreen extends Screen {
             if (button == null) continue;
             boolean selected = AbilityHudOverlay.gluttonyAbility() == index;
             button.setMessage(Component.literal(selected ? "[" + names[index] + "]" : names[index]));
+            String[] modes = {"MOBS", "BOTH", "PLAYERS"};
+            int selectedMode = AbilityHudOverlay.gluttonyTargetMode(index);
+            for (int mode = 0; mode < modes.length; mode++) {
+                Button targetButton = gluttonyTargetButtons[index][mode];
+                if (targetButton != null) targetButton.setMessage(Component.literal(
+                        selectedMode == mode ? "[" + modes[mode] + "]" : modes[mode]));
+            }
         }
     }
 

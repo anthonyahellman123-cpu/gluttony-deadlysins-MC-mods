@@ -6,7 +6,7 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class ModNetwork {
-    private static final String VERSION = "6";
+    private static final String VERSION = "7";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(GluttonyMod.MOD_ID, "main"),
             () -> VERSION,
@@ -30,5 +30,8 @@ public final class ModNetwork {
         CHANNEL.registerMessage(5, GluttonyAbilitySelectionPacket.class,
                 GluttonyAbilitySelectionPacket::encode, GluttonyAbilitySelectionPacket::decode,
                 GluttonyAbilitySelectionPacket::handle);
+        CHANNEL.registerMessage(6, GluttonyTargetModePacket.class,
+                GluttonyTargetModePacket::encode, GluttonyTargetModePacket::decode,
+                GluttonyTargetModePacket::handle);
     }
 }

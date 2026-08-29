@@ -70,6 +70,7 @@ public final class Devour {
         GluttonyData data = GluttonyData.of(player);
         if (SinData.selected(player) != SinData.NaturalSin.GLUTTONY
                 || data.selectedAbility() != GluttonyData.Ability.DEVOUR) return;
+        if (!data.allowsTarget(GluttonyData.Ability.DEVOUR, event.getEntity())) return;
         var tag = player.getPersistentData();
         long now = player.level().getGameTime();
         int charges = tag.getInt(CHARGES);

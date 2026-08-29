@@ -43,6 +43,8 @@ public final class SoulSiphon {
         if (!(event.getSource().getEntity() instanceof ServerPlayer player)) return;
         if (SinData.selected(player) != SinData.NaturalSin.GLUTTONY
                 || GluttonyData.of(player).selectedAbility() != GluttonyData.Ability.SOUL_SIPHON) return;
+        if (!GluttonyData.of(player).allowsTarget(GluttonyData.Ability.SOUL_SIPHON,
+                event.getEntity())) return;
         var tag = player.getPersistentData();
         long now = player.level().getGameTime();
         int charges = tag.getInt(CHARGES);

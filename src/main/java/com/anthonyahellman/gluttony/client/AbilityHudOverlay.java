@@ -41,6 +41,7 @@ public final class AbilityHudOverlay {
     private static int prideChargeTicks;
     private static int prideChargeStage;
     private static int gluttonyAbility;
+    private static final int[] gluttonyTargetModes = new int[3];
     private static boolean statsVisible;
 
     private AbilityHudOverlay() {}
@@ -62,6 +63,9 @@ public final class AbilityHudOverlay {
         prideChargeTicks = packet.prideChargeTicks();
         prideChargeStage = packet.prideChargeStage();
         gluttonyAbility = packet.gluttonyAbility();
+        gluttonyTargetModes[0] = packet.siphonTargetMode();
+        gluttonyTargetModes[1] = packet.devourTargetMode();
+        gluttonyTargetModes[2] = packet.beelzebubTargetMode();
     }
 
     public static void toggleStats() {
@@ -79,6 +83,9 @@ public final class AbilityHudOverlay {
     static boolean auraActive() { return auraActive; }
     static double avarice() { return avarice; }
     static int gluttonyAbility() { return gluttonyAbility; }
+    static int gluttonyTargetMode(int ability) {
+        return ability >= 0 && ability < gluttonyTargetModes.length ? gluttonyTargetModes[ability] : 0;
+    }
 
     public static boolean greedAwakened() {
         return sin == 3;

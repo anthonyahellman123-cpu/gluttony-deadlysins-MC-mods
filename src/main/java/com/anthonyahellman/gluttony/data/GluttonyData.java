@@ -2,6 +2,8 @@ package com.anthonyahellman.gluttony.data;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 
 public final class GluttonyData {
     private static final String ROOT = "DemonsBountyGluttony";
@@ -13,12 +15,24 @@ public final class GluttonyData {
     private static final String HEALTH = "ExtractedHealth";
     private static final String ATTACK = "ExtractedAttack";
     private static final String SELECTED_ABILITY = "SelectedAbility";
+    private static final String SIPHON_TARGET_MODE = "SoulSiphonTargetMode";
+    private static final String DEVOUR_TARGET_MODE = "DevourTargetMode";
+    private static final String BEELZEBUB_TARGET_MODE = "BeelzebubTargetMode";
 
     public enum Ability {
         SOUL_SIPHON(10), DEVOUR(50), BEELZEBUB(100);
         private final int unlockLevel;
         Ability(int unlockLevel) { this.unlockLevel = unlockLevel; }
         public int unlockLevel() { return unlockLevel; }
+    }
+
+    public enum TargetMode {
+        MOBS, BOTH, PLAYERS;
+
+        public boolean allows(LivingEntity target) {
+            boolean player = target instanceof Player;
+            return this == BOTH || (this == PLAYERS ? player : !player);
+        }
     }
 
     private final CompoundTag tag;
@@ -55,6 +69,25 @@ public final class GluttonyData {
         if (ability == null || level() < ability.unlockLevel) return false;
         tag.putInt(SELECTED_ABILITY, ability.ordinal());
         return true;
+    }
+    public TargetMode targetMode(Ability ability) {
+        String key = targetModeKey(ability);
+        int stored = tag.getInt(key);
+        TargetMode[] values = TargetMode.values();
+        return stored >= 0 && stored < values.length ? values[stored] : TargetMode.MOBS;
+    }
+    public void setTargetMode(Ability ability, TargetMode mode) {
+        if (ability != null && mode != null) tag.putInt(targetModeKey(ability), mode.ordinal());
+    }
+    public boolean allowsTarget(Ability ability, LivingEntity target) {
+        return target != null && targetMode(ability).allows(target);
+    }
+    private static String targetModeKey(Ability ability) {
+        return switch (ability) {
+            case SOUL_SIPHON -> SIPHON_TARGET_MODE;
+            case DEVOUR -> DEVOUR_TARGET_MODE;
+            case BEELZEBUB -> BEELZEBUB_TARGET_MODE;
+        };
     }
 
     public void addSouls(double amount) {
