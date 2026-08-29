@@ -5,6 +5,7 @@ import com.anthonyahellman.gluttony.data.PrideData;
 import com.anthonyahellman.gluttony.data.SinData;
 import com.anthonyahellman.gluttony.gameplay.AbilityHudSync;
 import com.anthonyahellman.gluttony.gameplay.PrideEvents;
+import com.anthonyahellman.gluttony.gameplay.PrideAbility;
 import com.anthonyahellman.gluttony.gameplay.PrideProgression;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
