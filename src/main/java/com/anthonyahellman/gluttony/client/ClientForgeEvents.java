@@ -15,6 +15,8 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = GluttonyMod.MOD_ID, value = Dist.CLIENT)
 public final class ClientForgeEvents {
+    private static boolean abilityHeld;
+    private static int abilityHeldTicks;
     private ClientForgeEvents() {}
 
     @SubscribeEvent
@@ -30,9 +32,23 @@ public final class ClientForgeEvents {
                 minecraft.player.hurtTime = maximumVisibleHurtTicks;
             }
         }
-        while (ClientModEvents.SIN_ABILITY.consumeClick()) {
+        boolean down = ClientModEvents.SIN_ABILITY.isDown();
+        if (down && !abilityHeld) {
+            abilityHeld = true;
+            abilityHeldTicks = 0;
             if (minecraft.screen instanceof PouchOfMammonScreen) minecraft.player.closeContainer();
-            else if (minecraft.screen == null) ModNetwork.CHANNEL.sendToServer(new SinAbilityPacket());
+            else if (minecraft.screen == null) {
+                ModNetwork.CHANNEL.sendToServer(new SinAbilityPacket(SinAbilityPacket.PRESS, 0));
+            }
+        } else if (down) {
+            abilityHeldTicks++;
+        } else if (abilityHeld) {
+            if (minecraft.screen == null) {
+                ModNetwork.CHANNEL.sendToServer(new SinAbilityPacket(
+                        SinAbilityPacket.RELEASE, abilityHeldTicks));
+            }
+            abilityHeld = false;
+            abilityHeldTicks = 0;
         }
         while (ClientModEvents.SIN_STATS.consumeClick()) {
             if (AbilityHudOverlay.sinId() <= 0) continue;

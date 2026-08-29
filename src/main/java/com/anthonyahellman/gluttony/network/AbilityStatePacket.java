@@ -12,7 +12,7 @@ public record AbilityStatePacket(int sin, boolean unlocked, boolean evolved, int
                                  int level, double currentSouls, double lifetimeSouls,
                                  double extractedHealth, double extractedAttack,
                                  int nextLevelSouls, boolean auraActive, double avarice,
-                                 int prideChargeTicks, int prideChargeStage) {
+                                 int prideChargeTicks, int prideChargeStage, int gluttonyAbility) {
     public static void encode(AbilityStatePacket packet, FriendlyByteBuf buffer) {
         buffer.writeVarInt(packet.sin);
         buffer.writeBoolean(packet.unlocked);
@@ -29,13 +29,15 @@ public record AbilityStatePacket(int sin, boolean unlocked, boolean evolved, int
         buffer.writeDouble(packet.avarice);
         buffer.writeVarInt(packet.prideChargeTicks);
         buffer.writeVarInt(packet.prideChargeStage);
+        buffer.writeVarInt(packet.gluttonyAbility);
     }
 
     public static AbilityStatePacket decode(FriendlyByteBuf buffer) {
         return new AbilityStatePacket(buffer.readVarInt(), buffer.readBoolean(), buffer.readBoolean(),
                 buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readDouble(),
                 buffer.readDouble(), buffer.readDouble(), buffer.readDouble(), buffer.readVarInt(),
-                buffer.readBoolean(), buffer.readDouble(), buffer.readVarInt(), buffer.readVarInt());
+                buffer.readBoolean(), buffer.readDouble(), buffer.readVarInt(), buffer.readVarInt(),
+                buffer.readVarInt());
     }
 
     public static void handle(AbilityStatePacket packet, Supplier<NetworkEvent.Context> contextSupplier) {

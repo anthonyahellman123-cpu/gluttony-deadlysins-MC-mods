@@ -62,6 +62,7 @@ public final class GluttonyCommands {
         source.sendSuccess(() -> Component.literal(String.format("Lifetime Souls: %.2f / %d", data.lifetimeSouls(), GluttonyData.soulsRequiredForLevel(Math.min(100, data.level() + 1)))), false);
         source.sendSuccess(() -> Component.literal(String.format("Extraction: %.0f%% stats | %.2fx souls", GluttonyExtraction.statFraction(data.level()) * 100.0, GluttonyExtraction.soulMultiplier(data.level()))), false);
         source.sendSuccess(() -> Component.literal(String.format("Consumed Stats: +%.2f health | +%.2f attack", data.extractedHealth(), data.extractedAttack())), false);
+        source.sendSuccess(() -> Component.literal("Equipped Ability: " + data.selectedAbility().name()), false);
         source.sendSuccess(() -> Component.literal("Soul Siphon: " + (data.level() >= 10 ? "Unlocked" : "Locked (Level 10)"))
                 .withStyle(data.level() >= 10 ? ChatFormatting.DARK_PURPLE : ChatFormatting.DARK_GRAY), false);
         source.sendSuccess(() -> Component.literal("Devour: " + (data.level() >= 50 ? "Unlocked" : "Locked (Level 50)"))

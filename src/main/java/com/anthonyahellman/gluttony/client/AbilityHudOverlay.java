@@ -40,6 +40,7 @@ public final class AbilityHudOverlay {
     private static double avarice;
     private static int prideChargeTicks;
     private static int prideChargeStage;
+    private static int gluttonyAbility;
     private static boolean statsVisible;
 
     private AbilityHudOverlay() {}
@@ -60,6 +61,7 @@ public final class AbilityHudOverlay {
         avarice = packet.avarice();
         prideChargeTicks = packet.prideChargeTicks();
         prideChargeStage = packet.prideChargeStage();
+        gluttonyAbility = packet.gluttonyAbility();
     }
 
     public static void toggleStats() {
@@ -76,6 +78,7 @@ public final class AbilityHudOverlay {
     static double consumedAttack() { return extractedAttack; }
     static boolean auraActive() { return auraActive; }
     static double avarice() { return avarice; }
+    static int gluttonyAbility() { return gluttonyAbility; }
 
     public static boolean greedAwakened() {
         return sin == 3;
@@ -226,8 +229,8 @@ public final class AbilityHudOverlay {
     }
 
     private static String stageName() {
-        if (level >= 100) return auraActive ? "BEELZEBUB ACTIVE" : "BEELZEBUB";
-        if (level >= 50) return "DEVOUR";
+        if (gluttonyAbility == 2) return auraActive ? "BEELZEBUB ACTIVE" : "BEELZEBUB";
+        if (gluttonyAbility == 1) return "DEVOUR";
         if (level >= 10) return "SOUL SIPHON";
         return "DORMANT ABILITY";
     }

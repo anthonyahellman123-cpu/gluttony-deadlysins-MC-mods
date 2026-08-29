@@ -50,7 +50,6 @@ public final class PrideAbility {
 
     public static void tryCast(ServerPlayer player) {
         if (SinData.selected(player) != SinData.NaturalSin.PRIDE) {
-            SoulSiphon.tryCast(player);
             return;
         }
         if (PrideData.of(player).totalBossKills() < UNLOCK_KILLS) {

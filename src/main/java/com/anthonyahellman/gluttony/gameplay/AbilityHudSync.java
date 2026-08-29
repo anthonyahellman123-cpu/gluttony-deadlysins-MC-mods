@@ -36,6 +36,7 @@ public final class AbilityHudSync {
         double avarice = 0.0;
         int prideChargeTicks = 0;
         int prideChargeStage = 0;
+        int gluttonyAbility = 0;
 
         if (sin == SinData.NaturalSin.GLUTTONY) {
             GluttonyData gluttony = GluttonyData.of(player);
@@ -48,6 +49,7 @@ public final class AbilityHudSync {
             unlocked = level >= SoulSiphon.UNLOCK_LEVEL;
             evolved = level >= Devour.UNLOCK_LEVEL;
             auraActive = Beelzebub.active(player);
+            gluttonyAbility = gluttony.selectedAbility().ordinal();
         } else if (sin == SinData.NaturalSin.PRIDE) {
             PrideData pride = PrideData.of(player);
             unlocked = pride.totalBossKills() >= PrideAbility.UNLOCK_KILLS;
@@ -64,7 +66,8 @@ public final class AbilityHudSync {
         ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
                 new AbilityStatePacket(sin.ordinal(), unlocked, evolved, cooldown, recast,
                         level, currentSouls, lifetimeSouls, extractedHealth, extractedAttack,
-                        nextLevelSouls, auraActive, avarice, prideChargeTicks, prideChargeStage));
+                        nextLevelSouls, auraActive, avarice, prideChargeTicks, prideChargeStage,
+                        gluttonyAbility));
         if (sin == SinData.NaturalSin.GREED) sendGreed(player);
         if (sin == SinData.NaturalSin.PRIDE) sendPride(player);
     }

@@ -6,17 +6,40 @@ import com.anthonyahellman.gluttony.network.ModNetwork;
 import com.anthonyahellman.gluttony.network.PrideStatePacket;
 import com.anthonyahellman.gluttony.network.SinAbilityPacket;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.glfw.GLFW;
+import com.anthonyahellman.gluttony.network.GluttonyAbilitySelectionPacket;
 
 public final class SinMenuScreen extends Screen {
     private static final ResourceLocation GLUTTONY = sigil("gluttony");
     private static final ResourceLocation PRIDE = sigil("pride");
     private static final ResourceLocation GREED = sigil("greed");
+    private final Button[] gluttonyAbilityButtons = new Button[3];
 
     public SinMenuScreen() { super(Component.literal("The Roots of Sin")); }
+
+    @Override
+    protected void init() {
+        super.init();
+        if (AbilityHudOverlay.sinId() != 1) return;
+        int panelWidth = Math.min(width - 24, 600);
+        int panelHeight = Math.min(height - 24, 310);
+        int left = (width - panelWidth) / 2;
+        int top = (height - panelHeight) / 2;
+        String[] names = {"SOUL SIPHON", "DEVOUR", "BEELZEBUB"};
+        int[] levels = {10, 50, 100};
+        for (int index = 0; index < names.length; index++) {
+            final int selected = index;
+            Button button = Button.builder(Component.literal(names[index]), ignored ->
+                    ModNetwork.CHANNEL.sendToServer(new GluttonyAbilitySelectionPacket(selected)))
+                    .bounds(left + 92 + index * 128, top + 150, 118, 20).build();
+            button.active = AbilityHudOverlay.sinLevel() >= levels[index];
+            gluttonyAbilityButtons[index] = addRenderableWidget(button);
+        }
+    }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
@@ -60,6 +83,14 @@ public final class SinMenuScreen extends Screen {
         graphics.drawString(font, String.format("Attack Damage: +%.2f", AbilityHudOverlay.consumedAttack()),
                 second, y + 31, 0xFFE6C6C6, false);
         graphics.drawString(font, "G — " + gluttonyAction(), second, y + 59, 0xFFFF7777, false);
+        graphics.drawString(font, "EQUIP TO G", left + 92, top + 134, 0xFFFFA7AE, false);
+        String[] names = {"SOUL SIPHON", "DEVOUR", "BEELZEBUB"};
+        for (int index = 0; index < gluttonyAbilityButtons.length; index++) {
+            Button button = gluttonyAbilityButtons[index];
+            if (button == null) continue;
+            boolean selected = AbilityHudOverlay.gluttonyAbility() == index;
+            button.setMessage(Component.literal(selected ? "[" + names[index] + "]" : names[index]));
+        }
     }
 
     private void renderPride(GuiGraphics graphics, int left, int top, int width) {
@@ -153,17 +184,18 @@ public final class SinMenuScreen extends Screen {
     }
 
     private String gluttonyStage() {
-        if (AbilityHudOverlay.sinLevel() >= 100) return AbilityHudOverlay.auraActive()
-                ? "BEELZEBUB ACTIVE" : "BEELZEBUB";
-        if (AbilityHudOverlay.sinLevel() >= 50) return "DEVOUR";
-        if (AbilityHudOverlay.sinLevel() >= 10) return "SOUL SIPHON";
+        if (AbilityHudOverlay.sinLevel() >= 100) return "ALL ABILITIES UNLOCKED";
+        if (AbilityHudOverlay.sinLevel() >= 50) return "DEVOUR UNLOCKED";
+        if (AbilityHudOverlay.sinLevel() >= 10) return "SOUL SIPHON UNLOCKED";
         return "DORMANT ABILITY";
     }
 
     private String gluttonyAction() {
-        if (AbilityHudOverlay.sinLevel() >= 100) return "TOGGLE BEELZEBUB";
-        if (AbilityHudOverlay.sinLevel() >= 50) return "DEVOUR";
-        return "SOUL SIPHON";
+        return switch (AbilityHudOverlay.gluttonyAbility()) {
+            case 1 -> "ARM / CHARGE DEVOUR";
+            case 2 -> AbilityHudOverlay.auraActive() ? "CLOSE BEELZEBUB" : "OPEN BEELZEBUB";
+            default -> "ARM SOUL SIPHON";
+        };
     }
 
     private static int premiumTotal(GreedStatePacket state) {
@@ -207,7 +239,6 @@ public final class SinMenuScreen extends Screen {
         }
         if (keyCode == GLFW.GLFW_KEY_G && AbilityHudOverlay.sinId() > 0) {
             onClose();
-            ModNetwork.CHANNEL.sendToServer(new SinAbilityPacket());
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);

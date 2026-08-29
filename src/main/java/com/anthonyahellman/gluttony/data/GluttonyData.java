@@ -12,6 +12,14 @@ public final class GluttonyData {
     private static final String LEVEL = "Level";
     private static final String HEALTH = "ExtractedHealth";
     private static final String ATTACK = "ExtractedAttack";
+    private static final String SELECTED_ABILITY = "SelectedAbility";
+
+    public enum Ability {
+        SOUL_SIPHON(10), DEVOUR(50), BEELZEBUB(100);
+        private final int unlockLevel;
+        Ability(int unlockLevel) { this.unlockLevel = unlockLevel; }
+        public int unlockLevel() { return unlockLevel; }
+    }
 
     private final CompoundTag tag;
 
@@ -37,6 +45,17 @@ public final class GluttonyData {
     public int level() { return Math.max(1, tag.getInt(LEVEL)); }
     public double extractedHealth() { return tag.getDouble(HEALTH); }
     public double extractedAttack() { return tag.getDouble(ATTACK); }
+    public Ability selectedAbility() {
+        int stored = tag.getInt(SELECTED_ABILITY);
+        Ability[] values = Ability.values();
+        Ability selected = stored >= 0 && stored < values.length ? values[stored] : Ability.SOUL_SIPHON;
+        return level() >= selected.unlockLevel ? selected : Ability.SOUL_SIPHON;
+    }
+    public boolean selectAbility(Ability ability) {
+        if (ability == null || level() < ability.unlockLevel) return false;
+        tag.putInt(SELECTED_ABILITY, ability.ordinal());
+        return true;
+    }
 
     public void addSouls(double amount) {
         if (amount <= 0) return;
@@ -60,6 +79,18 @@ public final class GluttonyData {
     public void addExtractedStats(double health, double attack) {
         tag.putDouble(HEALTH, extractedHealth() + health);
         tag.putDouble(ATTACK, extractedAttack() + attack);
+    }
+
+    public double sacrificeExtractedHealth(double amount) {
+        double spent = Math.min(extractedHealth(), Math.max(0.0, amount));
+        tag.putDouble(HEALTH, extractedHealth() - spent);
+        return spent;
+    }
+
+    public double sacrificeExtractedAttack(double amount) {
+        double spent = Math.min(extractedAttack(), Math.max(0.0, amount));
+        tag.putDouble(ATTACK, extractedAttack() - spent);
+        return spent;
     }
 
     public static int levelFor(double lifetimeSouls) {
