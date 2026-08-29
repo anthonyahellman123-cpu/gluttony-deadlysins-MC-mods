@@ -38,6 +38,8 @@ public final class AbilityHudOverlay {
     private static int nextLevelSouls;
     private static boolean auraActive;
     private static double avarice;
+    private static int prideChargeTicks;
+    private static int prideChargeStage;
     private static boolean statsVisible;
 
     private AbilityHudOverlay() {}
@@ -56,6 +58,8 @@ public final class AbilityHudOverlay {
         nextLevelSouls = packet.nextLevelSouls();
         auraActive = packet.auraActive();
         avarice = packet.avarice();
+        prideChargeTicks = packet.prideChargeTicks();
+        prideChargeStage = packet.prideChargeStage();
     }
 
     public static void toggleStats() {
@@ -114,8 +118,30 @@ public final class AbilityHudOverlay {
         graphics.pose().pushPose();
         graphics.pose().translate(0.0F, 0.0F, 300.0F);
         renderState(graphics, minecraft, x, y, size);
+        if (sin == 2 && unlocked) renderPrideCharge(graphics, minecraft, x, y, size);
         graphics.pose().popPose();
 
+    }
+
+    private static void renderPrideCharge(GuiGraphics graphics, Minecraft minecraft,
+                                          int x, int y, int size) {
+        double progress = prideChargeStage >= 5 ? 1.0
+                : (prideChargeTicks % 1200) / 1200.0;
+        if (progress > 0.0) drawRadial(graphics, x, y, size, progress, 0x45FFE58A);
+        String stage = prideChargeStage <= 0 ? "STAGE 0" : "STAGE " + roman(prideChargeStage);
+        drawCentered(graphics, minecraft, stage, x + size / 2, y - 10,
+                prideChargeStage >= 5 ? 0xFFFFFFFF : 0xFFFFE58A);
+    }
+
+    private static String roman(int stage) {
+        return switch (stage) {
+            case 1 -> "I";
+            case 2 -> "II";
+            case 3 -> "III";
+            case 4 -> "IV";
+            case 5 -> "V";
+            default -> "0";
+        };
     }
 
     private static void renderState(GuiGraphics graphics, Minecraft minecraft, int x, int y, int size) {

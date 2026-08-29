@@ -5,6 +5,7 @@ import net.minecraft.server.level.ServerPlayer;
 
 public final class PrideData {
     private static final String ROOT = "RootsOfSinPride";
+    private static final String TOTAL_CONQUESTS = "TotalConquests";
 
     public enum Trial {
         ENDER_DRAGON("dragon", "Ender Dragons", "EnderDragons", 12),
@@ -51,17 +52,23 @@ public final class PrideData {
 
     public boolean increment(Trial trial) {
         int old = count(trial);
+        tag.putLong(TOTAL_CONQUESTS, totalConquests() + 1L);
         if (old >= trial.required) return false;
         tag.putInt(trial.key, old + 1);
         return old + 1 == trial.required;
     }
 
     public void setCount(Trial trial, int count) {
-        tag.putInt(trial.key, Math.min(trial.required, Math.max(0, count)));
+        int old = count(trial);
+        int updated = Math.min(trial.required, Math.max(0, count));
+        long total = totalConquests();
+        tag.putInt(trial.key, updated);
+        tag.putLong(TOTAL_CONQUESTS, Math.max(0L, total + updated - old));
     }
 
     public void reset() {
         for (Trial trial : Trial.values()) tag.remove(trial.key);
+        tag.remove(TOTAL_CONQUESTS);
     }
 
     public int completedTrials() {
@@ -71,9 +78,16 @@ public final class PrideData {
     }
 
     public int totalBossKills() {
-        int total = 0;
-        for (Trial trial : Trial.values()) total += count(trial);
-        return total;
+        return (int)Math.min(Integer.MAX_VALUE, totalConquests());
+    }
+
+    public long totalConquests() {
+        if (!tag.contains(TOTAL_CONQUESTS)) {
+            long migrated = 0L;
+            for (Trial trial : Trial.values()) migrated += count(trial);
+            tag.putLong(TOTAL_CONQUESTS, migrated);
+        }
+        return Math.max(0L, tag.getLong(TOTAL_CONQUESTS));
     }
 
     public double maxHealthBonus() {

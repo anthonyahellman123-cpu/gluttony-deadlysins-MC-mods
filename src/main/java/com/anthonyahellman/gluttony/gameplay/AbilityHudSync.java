@@ -34,6 +34,8 @@ public final class AbilityHudSync {
         int nextLevelSouls = 0;
         boolean auraActive = false;
         double avarice = 0.0;
+        int prideChargeTicks = 0;
+        int prideChargeStage = 0;
 
         if (sin == SinData.NaturalSin.GLUTTONY) {
             GluttonyData gluttony = GluttonyData.of(player);
@@ -52,6 +54,8 @@ public final class AbilityHudSync {
             evolved = pride.fullyAwakened();
             cooldown = PrideAbility.cooldownRemaining(player);
             recast = PrideAbility.recastRemaining(player);
+            prideChargeTicks = PrideAbility.chargeTicks(player);
+            prideChargeStage = PrideAbility.chargeStage(player);
         } else if (sin == SinData.NaturalSin.GREED) {
             avarice = GreedData.of(player).avarice();
             unlocked = true;
@@ -60,7 +64,7 @@ public final class AbilityHudSync {
         ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
                 new AbilityStatePacket(sin.ordinal(), unlocked, evolved, cooldown, recast,
                         level, currentSouls, lifetimeSouls, extractedHealth, extractedAttack,
-                        nextLevelSouls, auraActive, avarice));
+                        nextLevelSouls, auraActive, avarice, prideChargeTicks, prideChargeStage));
         if (sin == SinData.NaturalSin.GREED) sendGreed(player);
         if (sin == SinData.NaturalSin.PRIDE) sendPride(player);
     }
@@ -84,6 +88,7 @@ public final class AbilityHudSync {
         ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new PrideStatePacket(
                 pride.count(PrideData.Trial.ENDER_DRAGON), pride.count(PrideData.Trial.WITHER),
                 pride.count(PrideData.Trial.ELDER_GUARDIAN), pride.count(PrideData.Trial.WARDEN),
+                pride.totalConquests(),
                 pride.maxHealthBonus(), pride.attackDamageBonus(), pride.bossDamageBonus()));
     }
 

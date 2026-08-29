@@ -68,10 +68,14 @@ public final class PrideAbility {
         player.getPersistentData().putBoolean(FALL_ACTIVE, true);
         player.getPersistentData().putDouble(FALL_START_Y, player.getY());
         player.fallDistance = 0.0F;
+        Vec3 initial = player.getDeltaMovement();
+        player.setDeltaMovement(initial.x * 0.65, Math.min(-1.6, initial.y - 1.25), initial.z * 0.65);
+        player.hurtMarked = true;
         player.displayClientMessage(Component.literal("LUCIFER'S FALL — STAGE " + roman(stage))
                 .withStyle(ChatFormatting.GOLD), true);
         player.level().playSound(null, player.blockPosition(), SoundEvents.BEACON_POWER_SELECT,
                 SoundSource.PLAYERS, 0.8F, 0.55F + stage * 0.05F);
+        AbilityHudSync.send(player);
     }
 
     @SubscribeEvent
@@ -88,10 +92,8 @@ public final class PrideAbility {
 
         player.fallDistance = 0.0F;
         Vec3 motion = player.getDeltaMovement();
-        player.setDeltaMovement(motion.x * 0.82, Math.max(-4.0, motion.y - 0.32), motion.z * 0.82);
+        player.setDeltaMovement(motion.x * 0.78, Math.max(-8.0, motion.y - 0.55), motion.z * 0.78);
         player.hurtMarked = true;
-        player.serverLevel().sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 0.8,
-                player.getZ(), 4, 0.22, 0.35, 0.22, 0.01);
         if (player.onGround() || !player.level().noCollision(player,
                 player.getBoundingBox().move(0.0, -0.18, 0.0))) impact(player);
     }
@@ -110,7 +112,7 @@ public final class PrideAbility {
         double heightScale = 1.0 + Math.min(2.0, distance / 60.0);
         double chargeScale = 1.0 + stage * 0.16;
         double scale = heightScale * chargeScale;
-        double radius = Math.min(36.0, 2.5 + distance * 0.16 + stage * 2.0);
+        double radius = Math.min(192.0, 6.0 + distance * 0.45 + stage * 4.0);
         ServerLevel level = player.serverLevel();
         level.sendParticles(ParticleTypes.EXPLOSION, player.getX(), player.getY() + 0.2, player.getZ(),
                 4 + stage, 0.7, 0.12, 0.7, 0.0);
@@ -153,9 +155,7 @@ public final class PrideAbility {
             if (wave.level != level || now < wave.nextTick) continue;
             wave.radius = Math.min(wave.maxRadius, wave.radius + Math.max(1.4, wave.maxRadius / 12.0));
             wave.nextTick = now + 4L;
-            level.sendParticles(wave.index == 0 ? ParticleTypes.END_ROD : ParticleTypes.SONIC_BOOM,
-                    wave.origin.x, wave.origin.y + 0.25, wave.origin.z,
-                    Math.max(8, (int)(wave.radius * 2.5)), wave.radius * 0.55, 0.08, wave.radius * 0.55, 0.01);
+            renderHalo(level, wave);
             Entity source = level.getEntity(wave.playerId);
             if (source instanceof ServerPlayer player) {
                 AABB area = new AABB(wave.origin, wave.origin).inflate(wave.radius, 2.5, wave.radius);
@@ -166,15 +166,27 @@ public final class PrideAbility {
                     wave.hit.add(target.getUUID());
                     float fraction = wave.index == 0 ? 0.25F : wave.index == 1 ? 0.10F : 0.05F;
                     float basis = Math.max(0.0F, target.getMaxHealth() - target.getHealth());
-                    // Only the normal aftershock receives the 50% live Attack Damage term.
-                    // Warden's 10% and 5% echoes remain purely percentage based.
-                    double attackContribution = wave.index == 0
-                            ? player.getAttributeValue(Attributes.ATTACK_DAMAGE) * 0.50 : 0.0;
-                    hurt(player, target, (float)((basis * fraction + attackContribution) * wave.scale));
+                    hurt(player, target, (float)(basis * fraction * wave.scale));
                     applyTrials(player, target);
                 }
             }
             if (wave.radius >= wave.maxRadius) iterator.remove();
+        }
+    }
+
+    private static void renderHalo(ServerLevel level, Wave wave) {
+        int points = Math.min(192, Math.max(24, (int)Math.ceil(wave.radius * 4.0)));
+        for (int point = 0; point < points; point++) {
+            double angle = Math.PI * 2.0 * point / points;
+            double x = wave.origin.x + Math.cos(angle) * wave.radius;
+            double z = wave.origin.z + Math.sin(angle) * wave.radius;
+            if (wave.index == 0) {
+                level.sendParticles(point % 3 == 0 ? ParticleTypes.WAX_ON : ParticleTypes.END_ROD,
+                        x, wave.origin.y + 0.22, z, 1, 0.015, 0.025, 0.015, 0.0);
+            } else {
+                level.sendParticles(point % 3 == 0 ? ParticleTypes.SCULK_SOUL : ParticleTypes.SOUL_FIRE_FLAME,
+                        x, wave.origin.y + 0.22, z, 1, 0.015, 0.025, 0.015, 0.0);
+            }
         }
     }
 

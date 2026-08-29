@@ -72,6 +72,8 @@ public final class SinMenuScreen extends Screen {
         trial(graphics, x, y + 33, "Withers", state.withers(), 8);
         trial(graphics, x, y + 48, "Elder Guardians", state.guardians(), 4);
         trial(graphics, x, y + 63, "Wardens", state.wardens(), 2);
+        graphics.drawString(font, "Total conquests: " + state.totalConquests(), x, y + 83,
+                0xFFFFD95A, false);
 
         int second = left + width / 2 + 18;
         graphics.drawString(font, "PRIDE-GRANTED POWER", second, y, 0xFFFFE09A, false);
@@ -81,10 +83,10 @@ public final class SinMenuScreen extends Screen {
                 second, y + 33, 0xFFE8D4A0, false);
         graphics.drawString(font, String.format("Boss damage bonus: +%.1f%%", state.bossDamageBonus() * 100.0),
                 second, y + 48, 0xFFE8D4A0, false);
-        graphics.drawString(font, "Impact: 25% max HP", second, y + 70, 0xFFFFC94D, false);
+        graphics.drawString(font, "Impact: 25% max HP + 50% Attack", second, y + 70, 0xFFFFC94D, false);
         graphics.drawString(font, "Echo: 25% missing HP", second, y + 84, 0xFFFFC94D, false);
         graphics.drawString(font, "Warden echoes: 10% then 5%", second, y + 98, 0xFFFFC94D, false);
-        graphics.drawString(font, "G — SOVEREIGN'S SLAM", second, y + 121, 0xFFFFE66D, false);
+        graphics.drawString(font, "G — LUCIFER'S FALL", second, y + 121, 0xFFFFE66D, false);
     }
 
     private void renderGreed(GuiGraphics graphics, int left, int top, int width) {
