@@ -121,14 +121,10 @@ public final class SinMenuScreen extends Screen {
                 0xFF92CE9D, false);
         graphics.drawString(font, "Coffer income: " + format(state.cofferIncome()), second, y + 64,
                 0xFFD7BA67, false);
-        graphics.drawString(font, "Market stock: " + state.marketStockStacks() + " stacks", second, y + 78,
-                0xFFD7BA67, false);
-        graphics.drawString(font, "Market activity: " + state.marketActivity(), second, y + 92,
-                0xFFD7BA67, false);
-        graphics.drawString(font, "Contract claims: " + state.contractClaims(), second, y + 106,
+        graphics.drawString(font, "Contract claims: " + state.contractClaims(), second, y + 78,
                 0xFFE5A79C, false);
-        graphics.drawString(font, "Net worth: TBD", second, y + 126, 0xFF9A8D7A, false);
-        graphics.drawString(font, "G — OPEN POUCH OF MAMMON", second, y + 148, 0xFFFFD95A, false);
+        graphics.drawString(font, "Net worth: TBD", second, y + 98, 0xFF9A8D7A, false);
+        graphics.drawString(font, "G — OPEN POUCH OF MAMMON", second, y + 120, 0xFFFFD95A, false);
     }
 
     private void renderDormant(GuiGraphics graphics, int left, int top, int width) {

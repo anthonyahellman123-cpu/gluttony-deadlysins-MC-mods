@@ -11,7 +11,7 @@ import java.util.function.Supplier;
 public record GreedStatePacket(
         double avarice, double lifetimeEarned, double lifetimeSpent,
         long assetsDivested, double vaultIncome, double cofferIncome,
-        long marketActivity, long contractClaims, int marketStockStacks,
+        long contractClaims,
         int coreHealth, int coreAttack, int coreArmor,
         int premiumMovement, int premiumAttackSpeed, int premiumLuck,
         int premiumKnockback, int premiumYield,
@@ -25,9 +25,7 @@ public record GreedStatePacket(
         buffer.writeVarLong(packet.assetsDivested);
         buffer.writeDouble(packet.vaultIncome);
         buffer.writeDouble(packet.cofferIncome);
-        buffer.writeVarLong(packet.marketActivity);
         buffer.writeVarLong(packet.contractClaims);
-        buffer.writeVarInt(packet.marketStockStacks);
         buffer.writeVarInt(packet.coreHealth);
         buffer.writeVarInt(packet.coreAttack);
         buffer.writeVarInt(packet.coreArmor);
@@ -47,7 +45,7 @@ public record GreedStatePacket(
     public static GreedStatePacket decode(FriendlyByteBuf buffer) {
         return new GreedStatePacket(buffer.readDouble(), buffer.readDouble(), buffer.readDouble(),
                 buffer.readVarLong(), buffer.readDouble(), buffer.readDouble(),
-                buffer.readVarLong(), buffer.readVarLong(), buffer.readVarInt(),
+                buffer.readVarLong(),
                 buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(),
                 buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(),
                 buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(),

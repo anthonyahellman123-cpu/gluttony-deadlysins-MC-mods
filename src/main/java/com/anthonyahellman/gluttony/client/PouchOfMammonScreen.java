@@ -27,7 +27,6 @@ public final class PouchOfMammonScreen extends AbstractContainerScreen<PouchOfMa
     private static final int LEFT_CONTENT_INSET = 14;
 
     private Button divestButton;
-    private Button marketButton;
 
     public PouchOfMammonScreen(PouchOfMammonMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -40,18 +39,12 @@ public final class PouchOfMammonScreen extends AbstractContainerScreen<PouchOfMa
     @Override
     protected void init() {
         super.init();
-        divestButton = addRenderableWidget(Button.builder(Component.literal("DIVEST ASSETS"), button -> {
+        divestButton = addRenderableWidget(Button.builder(Component.literal("SELL ITEMS"), button -> {
                     if (minecraft != null && minecraft.gameMode != null) {
                         minecraft.gameMode.handleInventoryButtonClick(menu.containerId,
                                 PouchOfMammonMenu.DIVEST_BUTTON);
                     }
                 }).bounds(leftPos + 244, topPos + 84, 92, 20).build());
-        marketButton = addRenderableWidget(Button.builder(Component.literal("SELL ITEMS"), button -> {
-                    if (minecraft != null && minecraft.gameMode != null) {
-                        minecraft.gameMode.handleInventoryButtonClick(menu.containerId,
-                                PouchOfMammonMenu.MARKET_BUTTON);
-                    }
-                }).bounds(leftPos + 236, topPos + 221, 286, 20).build());
         addBuyButton(PouchOfMammonMenu.CORE_HEALTH_BUTTON, 59);
         addBuyButton(PouchOfMammonMenu.CORE_ATTACK_BUTTON, 76);
         addBuyButton(PouchOfMammonMenu.CORE_ARMOR_BUTTON, 93);

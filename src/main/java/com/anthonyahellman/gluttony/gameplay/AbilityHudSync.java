@@ -71,7 +71,7 @@ public final class AbilityHudSync {
         ModNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new GreedStatePacket(
                 greed.avarice(), greed.lifetimeEarned(), greed.lifetimeSpent(),
                 greed.assetsDivested(), greed.vaultIncome(), greed.cofferIncome(),
-                greed.marketActivity(), greed.contractClaims(), greed.marketStockStacks(),
+                greed.contractClaims(),
                 greed.coreHealthPurchases(), greed.coreAttackPurchases(), greed.coreArmorPurchases(),
                 greed.premiumMovement(), greed.premiumAttackSpeed(), greed.premiumLuck(),
                 greed.premiumKnockbackResistance(), greed.premiumAvariceYield(),

@@ -10,8 +10,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -22,40 +20,30 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHealEvent;
-import net.minecraftforge.event.entity.living.LivingKnockBackEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-import java.util.Comparator;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Mod.EventBusSubscriber(modid = GluttonyMod.MOD_ID)
 public final class PrideAbility {
     public static final int UNLOCK_KILLS = 4;
     public static final String ABILITY_STRIKE_TAG = "RootsOfSinPrideAbilityStrike";
-    public static final String FOLLOW_UP_STRIKE_TAG = "RootsOfSinPrideFollowUpStrike";
     public static final String SLAM_DAMAGE_TAG = "RootsOfSinPrideSlamDamage";
-
-    private static final String DASH_TICKS = "RootsOfSinPrideDashTicks";
-    private static final String DASH_DIRECTION_X = "RootsOfSinPrideDashX";
-    private static final String DASH_DIRECTION_Y = "RootsOfSinPrideDashY";
-    private static final String DASH_DIRECTION_Z = "RootsOfSinPrideDashZ";
-    private static final String DASH_FOLLOW_UP = "RootsOfSinPrideDashFollowUp";
-    private static final String FOLLOW_UP_TARGET = "RootsOfSinPrideFollowUpTarget";
-    private static final String FOLLOW_UP_UNTIL = "RootsOfSinPrideFollowUpUntil";
-    private static final String COOLDOWN_UNTIL = "RootsOfSinPrideAbilityCooldown";
+    private static final String FALL_ACTIVE = "RootsOfSinLucifersFallActive";
+    private static final String FALL_START_Y = "RootsOfSinLucifersFallStartY";
+    private static final String CAST_STAGE = "RootsOfSinLucifersFallCastStage";
+    private static final String CHARGE_TICKS = "RootsOfSinLucifersFallCharge";
     private static final String GROUNDED_UNTIL = "RootsOfSinPrideGroundedUntil";
     private static final String HEALING_SUPPRESSED_UNTIL = "RootsOfSinPrideHealingSuppressedUntil";
-
-    private static final int DASH_DURATION = 8;
-    private static final int RECAST_WINDOW = 20;
-    private static final int RECOVERY_TICKS = 60;
-    private static final double DASH_SPEED = 2.15;
-    private static final int PULSE_INTERVAL = 6;
-    private static final List<SlamPulse> PENDING_PULSES = new ArrayList<>();
+    private static final int TICKS_PER_STAGE = 1200;
+    private static final int MAX_CHARGE_TICKS = 6000;
+    private static final List<Wave> WAVES = new ArrayList<>();
 
     private PrideAbility() {}
 
@@ -64,232 +52,153 @@ public final class PrideAbility {
             SoulSiphon.tryCast(player);
             return;
         }
-
-        PrideData data = PrideData.of(player);
-        if (data.totalBossKills() < UNLOCK_KILLS) {
-            feedback(player, "Sovereign's Slam unlocks after four conquered bosses.", ChatFormatting.GOLD);
-            AbilityHudSync.send(player);
+        if (PrideData.of(player).totalBossKills() < UNLOCK_KILLS) {
+            message(player, "Lucifer's Fall unlocks after four conquered bosses.", ChatFormatting.GOLD);
             return;
         }
-        if (!player.isAlive() || player.isSpectator()) return;
-
-        long now = player.level().getGameTime();
-        if (data.fullyAwakened() && now <= player.getPersistentData().getLong(FOLLOW_UP_UNTIL)
-                && player.getPersistentData().hasUUID(FOLLOW_UP_TARGET)) {
-            Entity entity = player.serverLevel().getEntity(player.getPersistentData().getUUID(FOLLOW_UP_TARGET));
-            if (entity instanceof LivingEntity target && target.isAlive() && target.level() == player.level()) {
-                beginDash(player, directionTo(player, target), true);
-                player.getPersistentData().remove(FOLLOW_UP_UNTIL);
-                AbilityHudSync.send(player);
-                return;
-            }
-        }
-
-        long cooldown = player.getPersistentData().getLong(COOLDOWN_UNTIL);
-        if (now < cooldown) {
-            feedback(player, String.format("Sovereign's Advance recovers in %.1fs", (cooldown - now) / 20.0),
-                    ChatFormatting.GRAY);
-            AbilityHudSync.send(player);
+        if (player.onGround()) {
+            message(player, "Lucifer's Fall can only begin while airborne.", ChatFormatting.GRAY);
             return;
         }
-
-        beginDash(player, player.getLookAngle().normalize(), false);
-        player.getPersistentData().putLong(COOLDOWN_UNTIL, now + RECOVERY_TICKS);
-        player.displayClientMessage(Component.literal(data.fullyAwakened()
-                ? "ABSOLUTE DOMINATION" : "SOVEREIGN'S SLAM").withStyle(ChatFormatting.GOLD), true);
-        AbilityHudSync.send(player);
-    }
-
-    private static void beginDash(ServerPlayer player, Vec3 direction, boolean followUp) {
-        if (direction.lengthSqr() < 0.001) return;
-        Vec3 normalized = direction.normalize();
-        var tag = player.getPersistentData();
-        tag.putInt(DASH_TICKS, DASH_DURATION);
-        tag.putDouble(DASH_DIRECTION_X, normalized.x);
-        tag.putDouble(DASH_DIRECTION_Y, normalized.y);
-        tag.putDouble(DASH_DIRECTION_Z, normalized.z);
-        tag.putBoolean(DASH_FOLLOW_UP, followUp);
+        if (player.getPersistentData().getBoolean(FALL_ACTIVE)) return;
+        int stage = chargeStage(player);
+        player.getPersistentData().putInt(CAST_STAGE, stage);
+        player.getPersistentData().putInt(CHARGE_TICKS, 0);
+        player.getPersistentData().putBoolean(FALL_ACTIVE, true);
+        player.getPersistentData().putDouble(FALL_START_Y, player.getY());
         player.fallDistance = 0.0F;
-        player.level().playSound(null, player.blockPosition(), SoundEvents.TRIDENT_RIPTIDE_1,
-                SoundSource.PLAYERS, 0.9F, followUp ? 0.75F : 1.0F);
+        player.displayClientMessage(Component.literal("LUCIFER'S FALL — STAGE " + roman(stage))
+                .withStyle(ChatFormatting.GOLD), true);
+        player.level().playSound(null, player.blockPosition(), SoundEvents.BEACON_POWER_SELECT,
+                SoundSource.PLAYERS, 0.8F, 0.55F + stage * 0.05F);
     }
 
     @SubscribeEvent
-    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || event.player.level().isClientSide) return;
-        if (!(event.player instanceof ServerPlayer player)) return;
+    public static void playerTick(TickEvent.PlayerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || event.player.level().isClientSide
+                || !(event.player instanceof ServerPlayer player)) return;
         if (player.tickCount % 20 == 0) AbilityHudSync.send(player);
-        int ticks = player.getPersistentData().getInt(DASH_TICKS);
-        if (ticks <= 0) return;
-
-        PrideData data = PrideData.of(player);
-        boolean followUp = player.getPersistentData().getBoolean(DASH_FOLLOW_UP);
-        Vec3 direction = storedDirection(player);
-        if (followUp && player.getPersistentData().hasUUID(FOLLOW_UP_TARGET)) {
-            Entity entity = player.serverLevel().getEntity(player.getPersistentData().getUUID(FOLLOW_UP_TARGET));
-            if (entity instanceof LivingEntity target && target.isAlive()) direction = directionTo(player, target);
+        if (SinData.selected(player) == SinData.NaturalSin.PRIDE
+                && !player.getPersistentData().getBoolean(FALL_ACTIVE)) {
+            int charge = chargeTicks(player);
+            if (charge < MAX_CHARGE_TICKS) player.getPersistentData().putInt(CHARGE_TICKS, charge + 1);
         }
+        if (!player.getPersistentData().getBoolean(FALL_ACTIVE)) return;
 
-        double speed = DASH_SPEED;
-        if (player.isInWater() && !data.complete(PrideData.Trial.ELDER_GUARDIAN)) speed *= 0.55;
-        player.setDeltaMovement(direction.scale(speed));
-        player.hurtMarked = true;
         player.fallDistance = 0.0F;
-        if (data.complete(PrideData.Trial.WARDEN)) {
-            player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 5, 1, true, false));
-        }
-
-        ServerLevel level = player.serverLevel();
-        level.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 1.0, player.getZ(),
-                5, 0.2, 0.25, 0.2, 0.02);
-        LivingEntity hit = findContact(player);
-        if (hit != null) {
-            strike(player, hit, followUp, data);
-            clearDash(player);
-            return;
-        }
-
-        player.getPersistentData().putInt(DASH_TICKS, ticks - 1);
-        if (ticks == 1) clearDash(player);
+        Vec3 motion = player.getDeltaMovement();
+        player.setDeltaMovement(motion.x * 0.82, Math.max(-4.0, motion.y - 0.32), motion.z * 0.82);
+        player.hurtMarked = true;
+        player.serverLevel().sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 0.8,
+                player.getZ(), 4, 0.22, 0.35, 0.22, 0.01);
+        if (player.onGround() || !player.level().noCollision(player,
+                player.getBoundingBox().move(0.0, -0.18, 0.0))) impact(player);
     }
 
-    private static void strike(ServerPlayer player, LivingEntity target, boolean followUp, PrideData data) {
+    private static void impact(ServerPlayer player) {
         var tag = player.getPersistentData();
-        tag.putBoolean(ABILITY_STRIKE_TAG, true);
-        tag.putBoolean(FOLLOW_UP_STRIKE_TAG, followUp);
-        slam(player, target, data);
-        tag.remove(ABILITY_STRIKE_TAG);
-        tag.remove(FOLLOW_UP_STRIKE_TAG);
+        int stage = Math.min(5, tag.getInt(CAST_STAGE));
+        double distance = Math.max(0.0, tag.getDouble(FALL_START_Y) - player.getY());
+        tag.remove(FALL_ACTIVE);
+        tag.remove(FALL_START_Y);
+        tag.remove(CAST_STAGE);
+        player.fallDistance = 0.0F;
 
-        if (data.complete(PrideData.Trial.ENDER_DRAGON)) ground(target, player.level().getGameTime() + 100);
+        double heightScale = 1.0 + Math.min(0.50, distance / 200.0);
+        double chargeScale = 1.0 + stage * 0.08;
+        double scale = heightScale * chargeScale;
+        double radius = Math.min(36.0, 2.5 + distance * 0.16 + stage * 2.0);
+        ServerLevel level = player.serverLevel();
+        level.sendParticles(ParticleTypes.EXPLOSION, player.getX(), player.getY() + 0.2, player.getZ(),
+                4 + stage, 0.7, 0.12, 0.7, 0.0);
+        level.playSound(null, player.blockPosition(), SoundEvents.RAVAGER_ROAR,
+                SoundSource.PLAYERS, 1.7F, 0.48F);
+
+        float impactDamage = (float)Math.max(4.0, (6.0 + distance * 0.35) * scale);
+        for (LivingEntity target : player.level().getEntitiesOfClass(LivingEntity.class,
+                player.getBoundingBox().inflate(2.5), e -> e != player && e.isAlive() && !e.isSpectator())) {
+            hurt(player, target, impactDamage);
+            applyTrials(player, target);
+        }
+        if (stage >= 1) {
+            addWave(player, radius, 0L, 0, scale);
+            if (PrideData.of(player).complete(PrideData.Trial.WARDEN)) {
+                addWave(player, radius * 0.72, 8L, 1, scale);
+                addWave(player, radius * 0.48, 16L, 2, scale);
+            }
+        }
+        message(player, String.format("Lucifer's Fall: %.1f blocks — Stage %s", distance, roman(stage)),
+                ChatFormatting.GOLD);
+    }
+
+    private static void addWave(ServerPlayer player, double radius, long delay, int index, double scale) {
+        WAVES.add(new Wave(player.serverLevel(), player.getUUID(), player.position(), radius,
+                player.level().getGameTime() + delay, index, scale));
+    }
+
+    @SubscribeEvent
+    public static void levelTick(TickEvent.LevelTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || !(event.level instanceof ServerLevel level)) return;
+        long now = level.getGameTime();
+        Iterator<Wave> iterator = WAVES.iterator();
+        while (iterator.hasNext()) {
+            Wave wave = iterator.next();
+            if (wave.level != level || now < wave.nextTick) continue;
+            double previous = wave.radius;
+            wave.radius = Math.min(wave.maxRadius, wave.radius + Math.max(1.4, wave.maxRadius / 12.0));
+            wave.nextTick = now + 4L;
+            level.sendParticles(wave.index == 0 ? ParticleTypes.END_ROD : ParticleTypes.SONIC_BOOM,
+                    wave.origin.x, wave.origin.y + 0.25, wave.origin.z,
+                    Math.max(8, (int)(wave.radius * 2.5)), wave.radius * 0.55, 0.08, wave.radius * 0.55, 0.01);
+            Entity source = level.getEntity(wave.playerId);
+            if (source instanceof ServerPlayer player) {
+                AABB area = new AABB(wave.origin, wave.origin).inflate(wave.radius, 2.5, wave.radius);
+                for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, area,
+                        e -> e != player && e.isAlive() && !e.isSpectator() && !wave.hit.contains(e.getUUID()))) {
+                    double horizontal = Math.hypot(target.getX() - wave.origin.x, target.getZ() - wave.origin.z);
+                    if (horizontal <= previous || horizontal > wave.radius) continue;
+                    wave.hit.add(target.getUUID());
+                    float fraction = wave.index == 0 ? 0.25F : wave.index == 1 ? 0.10F : 0.05F;
+                    float basis = wave.index == 0 ? target.getMaxHealth()
+                            : Math.max(0.0F, target.getMaxHealth() - target.getHealth());
+                    hurt(player, target, (float)(basis * fraction * wave.scale));
+                    applyTrials(player, target);
+                }
+            }
+            if (wave.radius >= wave.maxRadius) iterator.remove();
+        }
+    }
+
+    private static void hurt(ServerPlayer player, LivingEntity target, float damage) {
+        if (damage <= 0.0F) return;
+        player.getPersistentData().putBoolean(ABILITY_STRIKE_TAG, true);
+        player.getPersistentData().putBoolean(SLAM_DAMAGE_TAG, true);
+        target.invulnerableTime = 0;
+        target.hurt(player.damageSources().playerAttack(player), damage);
+        player.getPersistentData().remove(ABILITY_STRIKE_TAG);
+        player.getPersistentData().remove(SLAM_DAMAGE_TAG);
+    }
+
+    private static void applyTrials(ServerPlayer player, LivingEntity target) {
+        PrideData data = PrideData.of(player);
+        if (data.complete(PrideData.Trial.ENDER_DRAGON)) {
+            target.getPersistentData().putLong(GROUNDED_UNTIL, player.level().getGameTime() + 100L);
+            target.setDeltaMovement(target.getDeltaMovement().x, -0.8, target.getDeltaMovement().z);
+            target.hurtMarked = true;
+        }
         if (data.complete(PrideData.Trial.WITHER)) {
-            target.getPersistentData().putLong(HEALING_SUPPRESSED_UNTIL, player.level().getGameTime() + 120);
-            target.removeEffect(MobEffects.REGENERATION);
+            target.getPersistentData().putLong(HEALING_SUPPRESSED_UNTIL, player.level().getGameTime() + 120L);
+            target.removeEffect(net.minecraft.world.effect.MobEffects.REGENERATION);
         }
         if (data.complete(PrideData.Trial.ELDER_GUARDIAN) && target.isInWater()) {
             Vec3 pull = player.position().subtract(target.position());
             if (pull.lengthSqr() > 0.01) target.setDeltaMovement(pull.normalize().scale(1.15));
             target.hurtMarked = true;
         }
-        if (data.complete(PrideData.Trial.WARDEN)) impact(player, target);
-
-        if (data.fullyAwakened()) {
-            player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 80, 1));
-            if (!followUp && target.isAlive()) {
-                tag.putUUID(FOLLOW_UP_TARGET, target.getUUID());
-                tag.putLong(FOLLOW_UP_UNTIL, player.level().getGameTime() + RECAST_WINDOW);
-                player.displayClientMessage(Component.literal("Press again — I WASN'T FINISHED.")
-                        .withStyle(ChatFormatting.YELLOW), true);
-                AbilityHudSync.send(player);
-            }
-        }
-    }
-
-    private static void slam(ServerPlayer player, LivingEntity target, PrideData data) {
-        applySlamDamage(player, target, target.getMaxHealth() * 0.25F, 0);
-        long now = player.level().getGameTime();
-        PENDING_PULSES.add(new SlamPulse(player.serverLevel(), player.getUUID(), target.getUUID(),
-                now + PULSE_INTERVAL, 0.25F, 1));
-        if (data.complete(PrideData.Trial.WARDEN)) {
-            PENDING_PULSES.add(new SlamPulse(player.serverLevel(), player.getUUID(), target.getUUID(),
-                    now + PULSE_INTERVAL * 2L, 0.10F, 2));
-            PENDING_PULSES.add(new SlamPulse(player.serverLevel(), player.getUUID(), target.getUUID(),
-                    now + PULSE_INTERVAL * 3L, 0.05F, 3));
-        }
     }
 
     @SubscribeEvent
-    public static void onLevelTick(TickEvent.LevelTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !(event.level instanceof ServerLevel level)) return;
-        long now = level.getGameTime();
-        Iterator<SlamPulse> iterator = PENDING_PULSES.iterator();
-        while (iterator.hasNext()) {
-            SlamPulse pulse = iterator.next();
-            if (pulse.level() != level || pulse.executeAt() > now) continue;
-            iterator.remove();
-            Entity playerEntity = level.getEntity(pulse.playerId());
-            Entity targetEntity = level.getEntity(pulse.targetId());
-            if (!(playerEntity instanceof ServerPlayer player)
-                    || !(targetEntity instanceof LivingEntity target) || !target.isAlive()) continue;
-            float missingHealth = Math.max(0.0F, target.getMaxHealth() - target.getHealth());
-            applySlamDamage(player, target, missingHealth * pulse.missingHealthFraction(), pulse.index());
-        }
-    }
-
-    private static void applySlamDamage(ServerPlayer player, LivingEntity target, float damage, int pulse) {
-        if (damage <= 0.0F || !target.isAlive()) return;
-        player.getPersistentData().putBoolean(SLAM_DAMAGE_TAG, true);
-        target.invulnerableTime = 0;
-        target.hurt(player.damageSources().playerAttack(player), damage);
-        player.getPersistentData().remove(SLAM_DAMAGE_TAG);
-
-        ServerLevel level = player.serverLevel();
-        if (pulse == 0) {
-            level.sendParticles(ParticleTypes.EXPLOSION, target.getX(), target.getY() + 0.6, target.getZ(),
-                    3, 0.35, 0.25, 0.35, 0.0);
-            level.playSound(null, target.blockPosition(), SoundEvents.GENERIC_EXPLODE,
-                    SoundSource.PLAYERS, 0.8F, 0.65F);
-        } else {
-            level.sendParticles(pulse == 1 ? ParticleTypes.END_ROD : ParticleTypes.SOUL_FIRE_FLAME,
-                    target.getX(), target.getY() + 0.7, target.getZ(), 12,
-                    0.4, 0.35, 0.4, 0.035);
-            level.playSound(null, target.blockPosition(), SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(),
-                    SoundSource.PLAYERS, 0.45F, 1.35F - pulse * 0.15F);
-        }
-    }
-
-    private record SlamPulse(ServerLevel level, UUID playerId, UUID targetId, long executeAt,
-                             float missingHealthFraction, int index) {}
-
-    private static void impact(ServerPlayer player, LivingEntity directTarget) {
-        ServerLevel level = player.serverLevel();
-        level.sendParticles(ParticleTypes.EXPLOSION, directTarget.getX(), directTarget.getY() + 0.5,
-                directTarget.getZ(), 2, 0.25, 0.15, 0.25, 0.0);
-        for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class,
-                directTarget.getBoundingBox().inflate(2.5), entity -> entity != player && entity != directTarget)) {
-            Vec3 away = nearby.position().subtract(directTarget.position());
-            if (away.lengthSqr() > 0.01) nearby.push(away.x * 0.65, 0.35, away.z * 0.65);
-        }
-    }
-
-    private static void ground(LivingEntity target, long until) {
-        if (target instanceof Player player && (player.isCreative() || player.isSpectator())) return;
-        target.getPersistentData().putLong(GROUNDED_UNTIL, until);
-        target.setDeltaMovement(target.getDeltaMovement().x, -0.8, target.getDeltaMovement().z);
-        target.hurtMarked = true;
-    }
-
-    @SubscribeEvent
-    public static void onLivingTick(LivingEvent.LivingTickEvent event) {
-        LivingEntity entity = event.getEntity();
-        if (entity.level().isClientSide) return;
-        if (entity.level().getGameTime() >= entity.getPersistentData().getLong(GROUNDED_UNTIL)) return;
-        Vec3 motion = entity.getDeltaMovement();
-
-        boolean supported = entity.onGround()
-                || !entity.level().noCollision(entity, entity.getBoundingBox().move(0.0, -0.45, 0.0));
-        if (entity.getType() == EntityType.ENDER_DRAGON) {
-            int surface = entity.level().getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
-                    entity.getBlockX(), entity.getBlockZ());
-            double safeBottom = surface + 0.5;
-            double currentBottom = entity.getBoundingBox().minY;
-            if (currentBottom <= safeBottom) {
-                if (currentBottom < safeBottom) {
-                    entity.setPos(entity.getX(), entity.getY() + safeBottom - currentBottom, entity.getZ());
-                }
-                supported = true;
-            }
-        }
-
-        double vertical = supported ? 0.0 : Math.min(-0.35, motion.y);
-        double horizontalDrag = supported ? 0.55 : 0.8;
-        entity.setDeltaMovement(motion.x * horizontalDrag, vertical, motion.z * horizontalDrag);
-        entity.hurtMarked = true;
-        entity.fallDistance = 0.0F;
-    }
-
-    @SubscribeEvent
-    public static void onHeal(LivingHealEvent event) {
+    public static void heal(LivingHealEvent event) {
         if (event.getEntity().level().getGameTime()
                 < event.getEntity().getPersistentData().getLong(HEALING_SUPPRESSED_UNTIL)) {
             event.setAmount(event.getAmount() * 0.25F);
@@ -297,51 +206,50 @@ public final class PrideAbility {
     }
 
     @SubscribeEvent
-    public static void onKnockback(LivingKnockBackEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player
-                && player.getPersistentData().getInt(DASH_TICKS) > 0
-                && PrideData.of(player).complete(PrideData.Trial.WARDEN)) {
-            event.setCanceled(true);
+    public static void livingTick(LivingEvent.LivingTickEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (entity.level().isClientSide || entity.level().getGameTime()
+                >= entity.getPersistentData().getLong(GROUNDED_UNTIL)) return;
+        if (entity instanceof Player p && (p.isCreative() || p.isSpectator())) return;
+        Vec3 motion = entity.getDeltaMovement();
+        boolean supported = entity.onGround()
+                || !entity.level().noCollision(entity, entity.getBoundingBox().move(0.0, -0.45, 0.0));
+        if (entity.getType() == EntityType.ENDER_DRAGON) {
+            int surface = entity.level().getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                    entity.getBlockX(), entity.getBlockZ());
+            double safeBottom = surface + 0.5;
+            if (entity.getBoundingBox().minY <= safeBottom) {
+                entity.setPos(entity.getX(), entity.getY() + Math.max(0.0, safeBottom - entity.getBoundingBox().minY), entity.getZ());
+                supported = true;
+            }
         }
+        double drag = supported ? 0.55 : 0.8;
+        entity.setDeltaMovement(motion.x * drag, supported ? 0.0 : Math.min(-0.35, motion.y), motion.z * drag);
+        entity.hurtMarked = true;
+        entity.fallDistance = 0.0F;
     }
 
-    private static LivingEntity findContact(ServerPlayer player) {
-        AABB area = player.getBoundingBox().inflate(0.9);
-        return player.level().getEntitiesOfClass(LivingEntity.class, area,
-                        entity -> entity != player && entity.isAlive() && !entity.isSpectator())
-                .stream().min(Comparator.comparingDouble(player::distanceToSqr)).orElse(null);
+    public static int chargeTicks(ServerPlayer player) {
+        return Math.min(MAX_CHARGE_TICKS, Math.max(0, player.getPersistentData().getInt(CHARGE_TICKS)));
+    }
+    public static int chargeStage(ServerPlayer player) { return chargeTicks(player) / TICKS_PER_STAGE; }
+    public static int cooldownRemaining(ServerPlayer player) { return 0; }
+    public static int recastRemaining(ServerPlayer player) { return 0; }
+
+    private static String roman(int stage) {
+        return switch (stage) { case 1 -> "I"; case 2 -> "II"; case 3 -> "III"; case 4 -> "IV"; case 5 -> "V"; default -> "0"; };
+    }
+    private static void message(ServerPlayer player, String text, ChatFormatting color) {
+        player.displayClientMessage(Component.literal(text).withStyle(color), true);
     }
 
-    private static Vec3 storedDirection(ServerPlayer player) {
-        var tag = player.getPersistentData();
-        return new Vec3(tag.getDouble(DASH_DIRECTION_X), tag.getDouble(DASH_DIRECTION_Y),
-                tag.getDouble(DASH_DIRECTION_Z)).normalize();
-    }
-
-    private static Vec3 directionTo(ServerPlayer player, LivingEntity target) {
-        return target.getBoundingBox().getCenter().subtract(player.getEyePosition()).normalize();
-    }
-
-    private static void clearDash(ServerPlayer player) {
-        if (player.getPersistentData().getBoolean(DASH_FOLLOW_UP)) {
-            player.getPersistentData().remove(FOLLOW_UP_TARGET);
+    private static final class Wave {
+        final ServerLevel level; final UUID playerId; final Vec3 origin; final double maxRadius;
+        final int index; final double scale; final Set<UUID> hit = new HashSet<>();
+        double radius; long nextTick;
+        Wave(ServerLevel level, UUID playerId, Vec3 origin, double maxRadius, long nextTick, int index, double scale) {
+            this.level = level; this.playerId = playerId; this.origin = origin; this.maxRadius = maxRadius;
+            this.nextTick = nextTick; this.index = index; this.scale = scale;
         }
-        player.getPersistentData().remove(DASH_TICKS);
-        player.getPersistentData().remove(DASH_FOLLOW_UP);
-    }
-
-    private static void feedback(ServerPlayer player, String message, ChatFormatting color) {
-        player.displayClientMessage(Component.literal(message).withStyle(color), true);
-    }
-
-    public static int cooldownRemaining(ServerPlayer player) {
-        return (int) Math.max(0L, player.getPersistentData().getLong(COOLDOWN_UNTIL)
-                - player.level().getGameTime());
-    }
-
-    public static int recastRemaining(ServerPlayer player) {
-        if (!player.getPersistentData().hasUUID(FOLLOW_UP_TARGET)) return 0;
-        return (int) Math.max(0L, player.getPersistentData().getLong(FOLLOW_UP_UNTIL)
-                - player.level().getGameTime());
     }
 }
