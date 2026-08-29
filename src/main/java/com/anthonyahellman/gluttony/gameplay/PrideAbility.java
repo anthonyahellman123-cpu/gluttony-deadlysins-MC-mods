@@ -13,6 +13,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
@@ -118,8 +119,9 @@ public final class PrideAbility {
 
         for (LivingEntity target : player.level().getEntitiesOfClass(LivingEntity.class,
                 player.getBoundingBox().inflate(2.5), e -> e != player && e.isAlive() && !e.isSpectator())) {
-            // Component 1: landing dome — 25% of the target's maximum HP.
-            hurt(player, target, (float)(target.getMaxHealth() * 0.25F * scale));
+            // Component 1: 25% maximum HP plus half of Pride's live Attack Damage.
+            double attackContribution = player.getAttributeValue(Attributes.ATTACK_DAMAGE) * 0.50;
+            hurt(player, target, (float)((target.getMaxHealth() * 0.25F + attackContribution) * scale));
             applyTrials(player, target);
         }
         if (stage >= 1) {
@@ -164,7 +166,11 @@ public final class PrideAbility {
                     wave.hit.add(target.getUUID());
                     float fraction = wave.index == 0 ? 0.25F : wave.index == 1 ? 0.10F : 0.05F;
                     float basis = Math.max(0.0F, target.getMaxHealth() - target.getHealth());
-                    hurt(player, target, (float)(basis * fraction * wave.scale));
+                    // Only the normal aftershock receives the 50% live Attack Damage term.
+                    // Warden's 10% and 5% echoes remain purely percentage based.
+                    double attackContribution = wave.index == 0
+                            ? player.getAttributeValue(Attributes.ATTACK_DAMAGE) * 0.50 : 0.0;
+                    hurt(player, target, (float)((basis * fraction + attackContribution) * wave.scale));
                     applyTrials(player, target);
                 }
             }
