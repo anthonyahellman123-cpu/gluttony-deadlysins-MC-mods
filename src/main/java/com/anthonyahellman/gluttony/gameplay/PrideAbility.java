@@ -104,8 +104,10 @@ public final class PrideAbility {
         tag.remove(CAST_STAGE);
         player.fallDistance = 0.0F;
 
-        double heightScale = 1.0 + Math.min(0.50, distance / 200.0);
-        double chargeScale = 1.0 + stage * 0.08;
+        // Height and stored charge are independent multipliers applied after each
+        // percentage basis has been calculated from the target's live health state.
+        double heightScale = 1.0 + Math.min(2.0, distance / 60.0);
+        double chargeScale = 1.0 + stage * 0.16;
         double scale = heightScale * chargeScale;
         double radius = Math.min(36.0, 2.5 + distance * 0.16 + stage * 2.0);
         ServerLevel level = player.serverLevel();
@@ -114,17 +116,20 @@ public final class PrideAbility {
         level.playSound(null, player.blockPosition(), SoundEvents.RAVAGER_ROAR,
                 SoundSource.PLAYERS, 1.7F, 0.48F);
 
-        float impactDamage = (float)Math.max(4.0, (6.0 + distance * 0.35) * scale);
         for (LivingEntity target : player.level().getEntitiesOfClass(LivingEntity.class,
                 player.getBoundingBox().inflate(2.5), e -> e != player && e.isAlive() && !e.isSpectator())) {
-            hurt(player, target, impactDamage);
+            // Component 1: landing dome — 25% of the target's maximum HP.
+            hurt(player, target, (float)(target.getMaxHealth() * 0.25F * scale));
             applyTrials(player, target);
         }
         if (stage >= 1) {
-            addWave(player, radius, 0L, 0, scale);
+            // Component 2: the normal expanding aftershock — 25% of the HP
+            // missing after the landing dome has resolved.
+            addWave(player, radius, 4L, 0, scale);
             if (PrideData.of(player).complete(PrideData.Trial.WARDEN)) {
-                addWave(player, radius * 0.72, 8L, 1, scale);
-                addWave(player, radius * 0.48, 16L, 2, scale);
+                // Components 3 and 4: Warden-unlocked missing-HP echoes.
+                addWave(player, radius * 0.72, 12L, 1, scale);
+                addWave(player, radius * 0.48, 20L, 2, scale);
             }
         }
         message(player, String.format("Lucifer's Fall: %.1f blocks — Stage %s", distance, roman(stage)),
@@ -144,7 +149,6 @@ public final class PrideAbility {
         while (iterator.hasNext()) {
             Wave wave = iterator.next();
             if (wave.level != level || now < wave.nextTick) continue;
-            double previous = wave.radius;
             wave.radius = Math.min(wave.maxRadius, wave.radius + Math.max(1.4, wave.maxRadius / 12.0));
             wave.nextTick = now + 4L;
             level.sendParticles(wave.index == 0 ? ParticleTypes.END_ROD : ParticleTypes.SONIC_BOOM,
@@ -156,11 +160,10 @@ public final class PrideAbility {
                 for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, area,
                         e -> e != player && e.isAlive() && !e.isSpectator() && !wave.hit.contains(e.getUUID()))) {
                     double horizontal = Math.hypot(target.getX() - wave.origin.x, target.getZ() - wave.origin.z);
-                    if (horizontal <= previous || horizontal > wave.radius) continue;
+                    if (horizontal > wave.radius) continue;
                     wave.hit.add(target.getUUID());
                     float fraction = wave.index == 0 ? 0.25F : wave.index == 1 ? 0.10F : 0.05F;
-                    float basis = wave.index == 0 ? target.getMaxHealth()
-                            : Math.max(0.0F, target.getMaxHealth() - target.getHealth());
+                    float basis = Math.max(0.0F, target.getMaxHealth() - target.getHealth());
                     hurt(player, target, (float)(basis * fraction * wave.scale));
                     applyTrials(player, target);
                 }
