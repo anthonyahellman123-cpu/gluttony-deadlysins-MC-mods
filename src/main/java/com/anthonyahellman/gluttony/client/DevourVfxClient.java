@@ -1,6 +1,5 @@
 package com.anthonyahellman.gluttony.client;
 
-import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.network.DevourVfxPacket;
 import com.anthonyahellman.gluttony.registry.ModParticles;
 import net.minecraft.client.Minecraft;
@@ -10,17 +9,12 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 /** Client-only bite, rip, and inward-consumption choreography for Devour. */
-@Mod.EventBusSubscriber(modid = GluttonyMod.MOD_ID, value = Dist.CLIENT)
 public final class DevourVfxClient {
     private static final RandomSource RANDOM = RandomSource.create();
     private static final List<Bite> BITES = new ArrayList<>();
@@ -37,9 +31,7 @@ public final class DevourVfxClient {
                 Mth.clamp(packet.chargeStrength(), 0.0F, 1.0F)));
     }
 
-    @SubscribeEvent
-    public static void clientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
+    static void tick() {
         Minecraft minecraft = Minecraft.getInstance();
         ClientLevel level = minecraft.level;
         if (level == null) { clear(); return; }

@@ -123,7 +123,7 @@ public final class Devour {
 
         Vec3 source = target.getBoundingBox().getCenter();
         Vec3 destination = player.getEyePosition().add(0.0, -0.35, 0.0);
-        sendVfxNear(player.serverLevel(), source.lerp(destination, 0.5),
+        sendVfx(player,
                 new DevourVfxPacket(player.getId(), target.getId(), source.x, source.y, source.z,
                         destination.x, destination.y, destination.z,
                         Math.max(0.0F, Math.min(1.0F, (float)chargeStrength))));
@@ -160,10 +160,8 @@ public final class Devour {
         return instance == null ? 0.0 : instance.getValue();
     }
 
-    private static void sendVfxNear(ServerLevel level, Vec3 origin, DevourVfxPacket packet) {
-        ModNetwork.CHANNEL.send(PacketDistributor.NEAR.with(() ->
-                new PacketDistributor.TargetPoint(origin.x, origin.y, origin.z, 96.0,
-                        level.dimension())), packet);
+    private static void sendVfx(ServerPlayer player, DevourVfxPacket packet) {
+        ModNetwork.CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> player), packet);
     }
 
     private record PendingBite(ServerLevel level, UUID playerId, UUID targetId,

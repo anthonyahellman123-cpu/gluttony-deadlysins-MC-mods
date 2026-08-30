@@ -22,6 +22,10 @@ public final class ClientForgeEvents {
     @SubscribeEvent
     public static void clientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+        // Keep Gluttony's short-lived VFX on the same proven client tick path as input/HUD.
+        // This avoids relying on separate annotation-discovered subscribers for each effect.
+        SoulSiphonVfxClient.tick();
+        DevourVfxClient.tick();
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.level == null || minecraft.isPaused()) return;
         if (AbilityHudOverlay.greedAwakened()) {

@@ -1,6 +1,5 @@
 package com.anthonyahellman.gluttony.client;
 
-import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.network.SoulSiphonVfxPacket;
 import com.anthonyahellman.gluttony.registry.ModParticles;
 import net.minecraft.client.Minecraft;
@@ -10,10 +9,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 
 /** Client-only choreography for server-confirmed Soul Siphon events. */
-@Mod.EventBusSubscriber(modid = GluttonyMod.MOD_ID, value = Dist.CLIENT)
 public final class SoulSiphonVfxClient {
     private static final RandomSource RANDOM = RandomSource.create();
     private static final Map<Integer, Primed> PRIMED = new HashMap<>();
@@ -55,9 +49,7 @@ public final class SoulSiphonVfxClient {
                 new Vec3(packet.destinationX(), packet.destinationY(), packet.destinationZ())));
     }
 
-    @SubscribeEvent
-    public static void clientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
+    static void tick() {
         Minecraft minecraft = Minecraft.getInstance();
         ClientLevel level = minecraft.level;
         if (level == null) {

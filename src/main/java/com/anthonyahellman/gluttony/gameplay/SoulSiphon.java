@@ -38,7 +38,7 @@ public final class SoulSiphon {
         player.getPersistentData().putLong(EXPIRES, player.level().getGameTime() + BUFF_DURATION_TICKS);
         player.displayClientMessage(Component.literal("SOUL SIPHON — NEXT 3 ATTACKS EMPOWERED")
                 .withStyle(ChatFormatting.DARK_PURPLE), true);
-        sendVfxNear(player.serverLevel(), player.position(),
+        sendVfx(player,
                 SoulSiphonVfxPacket.primed(player.getId(), BUFF_DURATION_TICKS));
         AbilityHudSync.send(player);
     }
@@ -64,7 +64,7 @@ public final class SoulSiphon {
         LivingEntity target = event.getEntity();
         Vec3 source = target.getBoundingBox().getCenter();
         Vec3 destination = player.getEyePosition().add(0.0, -0.35, 0.0);
-        sendVfxNear(player.serverLevel(), source.lerp(destination, 0.5),
+        sendVfx(player,
                 SoulSiphonVfxPacket.extraction(player.getId(), target.getId(), source,
                         destination, charges - 1, Math.max(0, (int)(tag.getLong(EXPIRES) - now))));
         player.displayClientMessage(Component.literal(String.format("SOUL SIPHON  +%.2f souls  (%d left)",
@@ -82,9 +82,7 @@ public final class SoulSiphon {
         }
     }
 
-    private static void sendVfxNear(ServerLevel level, Vec3 origin, SoulSiphonVfxPacket packet) {
-        ModNetwork.CHANNEL.send(PacketDistributor.NEAR.with(() ->
-                new PacketDistributor.TargetPoint(origin.x, origin.y, origin.z, 96.0,
-                        level.dimension())), packet);
+    private static void sendVfx(ServerPlayer player, SoulSiphonVfxPacket packet) {
+        ModNetwork.CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> player), packet);
     }
 }
