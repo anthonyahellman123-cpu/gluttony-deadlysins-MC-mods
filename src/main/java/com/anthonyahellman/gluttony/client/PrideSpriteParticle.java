@@ -1,5 +1,6 @@
 package com.anthonyahellman.gluttony.client;
 
+import com.anthonyahellman.gluttony.gameplay.PrideFallTuning;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
@@ -63,13 +64,13 @@ public final class PrideSpriteParticle extends TextureSheetParticle {
     }
 
     public enum Kind {
-        MOTE(10, 8, 0.28F, 0.24F, 0.90F, 0.94F, -0.015F,
+        MOTE(10, 8, PrideFallTuning.PARTICLE_SCALE_MOTE, PrideFallTuning.PARTICLE_SCALE_MOTE * 0.85F, 0.90F, 0.94F, -0.015F,
                 PrideParticlePalette.BRILLIANT_GOLD),
-        STREAK(9, 6, 0.52F, 0.34F, 0.92F, 0.96F, 0.0F,
+        STREAK(9, 6, PrideFallTuning.PARTICLE_SCALE_STREAK, PrideFallTuning.PARTICLE_SCALE_STREAK * 0.65F, 0.92F, 0.96F, 0.0F,
                 PrideParticlePalette.DEEP_GOLD),
-        SHARD(14, 10, 0.34F, 0.30F, 0.84F, 0.91F, 0.055F,
+        SHARD(14, 10, PrideFallTuning.PARTICLE_SCALE_SHARD, PrideFallTuning.PARTICLE_SCALE_SHARD * 0.80F, 0.84F, 0.91F, 0.055F,
                 PrideParticlePalette.BLACKENED_GOLD),
-        EMBER(22, 18, 0.20F, 0.20F, 0.82F, 0.89F, -0.025F,
+        EMBER(22, 18, PrideFallTuning.PARTICLE_SCALE_EMBER, PrideFallTuning.PARTICLE_SCALE_EMBER * 0.90F, 0.82F, 0.89F, -0.025F,
                 PrideParticlePalette.DEEP_GOLD);
 
         private final int minimumLifetime;

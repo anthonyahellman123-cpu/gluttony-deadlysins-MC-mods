@@ -5,6 +5,8 @@ import com.anthonyahellman.gluttony.network.ModNetwork;
 import com.anthonyahellman.gluttony.network.PrideVfxTestPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.item.PrimedTnt;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -26,6 +28,9 @@ public final class PrideVfxTestController {
     private static final String TEST_ACTOR_TAG = "RootsOfSinPrideVfxTestActor";
     private static final double START_HEIGHT = 38.0;
     private static final double VIEW_DISTANCE = 112.0;
+    private static final double TEST_IMPACT_RADIUS = 24.0;
+    private static final double TEST_WAVE_RADIUS =
+            TEST_IMPACT_RADIUS * PrideFallTuning.SHOCKWAVE_RADIUS_MULTIPLIER;
     private static final Map<UUID, ActiveTest> ACTIVE = new HashMap<>();
 
     private PrideVfxTestController() {}
@@ -55,8 +60,7 @@ public final class PrideVfxTestController {
             return;
         }
         sendNear(level, x, startY, z,
-                new PrideVfxTestPacket(PrideVfxTestPacket.START_DESCENT,
-                        actor.getId(), x, startY, z));
+                PrideVfxTestPacket.descent(actor.getId(), x, startY, z));
     }
 
     @SubscribeEvent
@@ -90,8 +94,13 @@ public final class PrideVfxTestController {
             if (supported || test.age >= 100) {
                 double impactY = actor.getY() + 0.08;
                 sendNear(level, actor.getX(), impactY, actor.getZ(),
-                        new PrideVfxTestPacket(PrideVfxTestPacket.IMPACT,
-                                actor.getId(), actor.getX(), impactY, actor.getZ()));
+                        PrideVfxTestPacket.impact(actor.getId(), actor.getX(), impactY, actor.getZ(),
+                                TEST_IMPACT_RADIUS));
+                sendNear(level, actor.getX(), impactY, actor.getZ(),
+                        PrideVfxTestPacket.wave(actor.getX(), impactY, actor.getZ(), TEST_WAVE_RADIUS,
+                                PrideFallTuning.WAVE_DURATION_TICKS, 0, 2));
+                level.playSound(null, actor.blockPosition(), SoundEvents.RAVAGER_ROAR,
+                        SoundSource.PLAYERS, 1.7F, 0.48F);
                 actor.discard();
                 iterator.remove();
             }

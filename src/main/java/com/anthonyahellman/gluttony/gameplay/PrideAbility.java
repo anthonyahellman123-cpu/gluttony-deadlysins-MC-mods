@@ -3,13 +3,15 @@ package com.anthonyahellman.gluttony.gameplay;
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.data.PrideData;
 import com.anthonyahellman.gluttony.data.SinData;
+import com.anthonyahellman.gluttony.network.ModNetwork;
+import com.anthonyahellman.gluttony.network.PrideVfxTestPacket;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -23,6 +25,7 @@ import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHealEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.network.PacketDistributor;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -42,8 +45,6 @@ public final class PrideAbility {
     private static final String CHARGE_TICKS = "RootsOfSinLucifersFallCharge";
     private static final String GROUNDED_UNTIL = "RootsOfSinPrideGroundedUntil";
     private static final String HEALING_SUPPRESSED_UNTIL = "RootsOfSinPrideHealingSuppressedUntil";
-    private static final int TICKS_PER_STAGE = 1200;
-    private static final int MAX_CHARGE_TICKS = 6000;
     private static final List<Wave> WAVES = new ArrayList<>();
 
     private PrideAbility() {}
@@ -74,6 +75,8 @@ public final class PrideAbility {
                 .withStyle(ChatFormatting.GOLD), true);
         player.level().playSound(null, player.blockPosition(), SoundEvents.BEACON_POWER_SELECT,
                 SoundSource.PLAYERS, 0.8F, 0.55F + stage * 0.05F);
+        sendNear(player.serverLevel(), player.getX(), player.getY(), player.getZ(), 96.0,
+                PrideVfxTestPacket.descent(player.getId(), player.getX(), player.getY(), player.getZ()));
         AbilityHudSync.send(player);
     }
 
@@ -85,7 +88,9 @@ public final class PrideAbility {
         if (SinData.selected(player) == SinData.NaturalSin.PRIDE
                 && !player.getPersistentData().getBoolean(FALL_ACTIVE)) {
             int charge = chargeTicks(player);
-            if (charge < MAX_CHARGE_TICKS) player.getPersistentData().putInt(CHARGE_TICKS, charge + 1);
+            if (charge < PrideFallTuning.MAX_CHARGE_TICKS) {
+                player.getPersistentData().putInt(CHARGE_TICKS, charge + 1);
+            }
         }
         if (!player.getPersistentData().getBoolean(FALL_ACTIVE)) return;
 
@@ -111,28 +116,36 @@ public final class PrideAbility {
         double heightScale = 1.0 + Math.min(2.0, distance / 60.0);
         double chargeScale = 1.0 + stage * 0.16;
         double scale = heightScale * chargeScale;
-        double radius = Math.min(192.0, 6.0 + distance * 0.45 + stage * 4.0);
+        double impactRadius = Math.min(PrideFallTuning.MAX_IMPACT_RADIUS,
+                6.0 + distance * 0.45 + stage * 4.0);
+        double shockwaveRadius = Math.min(PrideFallTuning.MAX_SHOCKWAVE_RADIUS,
+                impactRadius * PrideFallTuning.SHOCKWAVE_RADIUS_MULTIPLIER);
         ServerLevel level = player.serverLevel();
-        level.sendParticles(ParticleTypes.EXPLOSION, player.getX(), player.getY() + 0.2, player.getZ(),
-                4 + stage, 0.7, 0.12, 0.7, 0.0);
+        Vec3 origin = player.position();
+        sendNear(level, origin.x, origin.y, origin.z, shockwaveRadius + 48.0,
+                PrideVfxTestPacket.impact(player.getId(), origin.x, origin.y, origin.z, impactRadius));
         level.playSound(null, player.blockPosition(), SoundEvents.RAVAGER_ROAR,
                 SoundSource.PLAYERS, 1.7F, 0.48F);
 
-        for (LivingEntity target : player.level().getEntitiesOfClass(LivingEntity.class,
-                player.getBoundingBox().inflate(2.5), e -> e != player && e.isAlive() && !e.isSpectator())) {
+        AABB impactArea = new AABB(origin, origin).inflate(impactRadius,
+                PrideFallTuning.WAVE_TARGET_HEIGHT, impactRadius);
+        double attackContribution = player.getAttributeValue(Attributes.ATTACK_DAMAGE) * 0.50;
+        for (LivingEntity target : player.level().getEntitiesOfClass(LivingEntity.class, impactArea,
+                e -> e != player && e.isAlive() && !e.isSpectator())) {
+            double horizontal = Math.hypot(target.getX() - origin.x, target.getZ() - origin.z);
+            if (horizontal > impactRadius) continue;
             // Component 1: 25% maximum HP plus half of Pride's live Attack Damage.
-            double attackContribution = player.getAttributeValue(Attributes.ATTACK_DAMAGE) * 0.50;
             hurt(player, target, (float)((target.getMaxHealth() * 0.25F + attackContribution) * scale));
             applyTrials(player, target);
         }
         if (stage >= 1) {
             // Component 2: the normal expanding aftershock — 25% of the HP
             // missing after the landing dome has resolved.
-            addWave(player, radius, 4L, 0, scale);
+            addWave(player, shockwaveRadius, 4L, 0, scale);
             if (PrideData.of(player).complete(PrideData.Trial.WARDEN)) {
                 // Components 3 and 4: Warden-unlocked missing-HP echoes.
-                addWave(player, radius * 0.72, 12L, 1, scale);
-                addWave(player, radius * 0.48, 20L, 2, scale);
+                addWave(player, shockwaveRadius * 0.72, 12L, 1, scale);
+                addWave(player, shockwaveRadius * 0.48, 20L, 2, scale);
             }
         }
         message(player, String.format("Lucifer's Fall: %.1f blocks — Stage %s", distance, roman(stage)),
@@ -141,7 +154,7 @@ public final class PrideAbility {
 
     private static void addWave(ServerPlayer player, double radius, long delay, int index, double scale) {
         WAVES.add(new Wave(player.serverLevel(), player.getUUID(), player.position(), radius,
-                player.level().getGameTime() + delay, index, scale));
+                player.level().getGameTime() + delay, PrideFallTuning.WAVE_DURATION_TICKS, index, scale));
     }
 
     @SubscribeEvent
@@ -151,13 +164,20 @@ public final class PrideAbility {
         Iterator<Wave> iterator = WAVES.iterator();
         while (iterator.hasNext()) {
             Wave wave = iterator.next();
-            if (wave.level != level || now < wave.nextTick) continue;
-            wave.radius = Math.min(wave.maxRadius, wave.radius + Math.max(1.4, wave.maxRadius / 12.0));
-            wave.nextTick = now + 4L;
-            renderHalo(level, wave);
+            if (wave.level != level || now < wave.startTick) continue;
+            if (!wave.visualSent) {
+                wave.visualSent = true;
+                sendNear(level, wave.origin.x, wave.origin.y, wave.origin.z, wave.maxRadius + 48.0,
+                        PrideVfxTestPacket.wave(wave.origin.x, wave.origin.y, wave.origin.z,
+                                wave.maxRadius, wave.durationTicks, wave.index, 0));
+            }
+            long elapsed = now - wave.startTick;
+            wave.radius = PrideFallTuning.waveRadius(wave.maxRadius, elapsed + 1.0, wave.durationTicks);
             Entity source = level.getEntity(wave.playerId);
-            if (source instanceof ServerPlayer player) {
-                AABB area = new AABB(wave.origin, wave.origin).inflate(wave.radius, 2.5, wave.radius);
+            if (source instanceof ServerPlayer player && now >= wave.nextDamageTick) {
+                wave.nextDamageTick = now + PrideFallTuning.WAVE_DAMAGE_SAMPLE_TICKS;
+                AABB area = new AABB(wave.origin, wave.origin).inflate(wave.radius,
+                        PrideFallTuning.WAVE_TARGET_HEIGHT, wave.radius);
                 for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, area,
                         e -> e != player && e.isAlive() && !e.isSpectator() && !wave.hit.contains(e.getUUID()))) {
                     double horizontal = Math.hypot(target.getX() - wave.origin.x, target.getZ() - wave.origin.z);
@@ -165,27 +185,13 @@ public final class PrideAbility {
                     wave.hit.add(target.getUUID());
                     float fraction = wave.index == 0 ? 0.25F : wave.index == 1 ? 0.10F : 0.05F;
                     float basis = Math.max(0.0F, target.getMaxHealth() - target.getHealth());
-                    hurt(player, target, (float)(basis * fraction * wave.scale));
+                    double attackContribution = wave.index == 0
+                            ? player.getAttributeValue(Attributes.ATTACK_DAMAGE) * 0.50 : 0.0;
+                    hurt(player, target, (float)((basis * fraction + attackContribution) * wave.scale));
                     applyTrials(player, target);
                 }
             }
-            if (wave.radius >= wave.maxRadius) iterator.remove();
-        }
-    }
-
-    private static void renderHalo(ServerLevel level, Wave wave) {
-        int points = Math.min(192, Math.max(24, (int)Math.ceil(wave.radius * 4.0)));
-        for (int point = 0; point < points; point++) {
-            double angle = Math.PI * 2.0 * point / points;
-            double x = wave.origin.x + Math.cos(angle) * wave.radius;
-            double z = wave.origin.z + Math.sin(angle) * wave.radius;
-            if (wave.index == 0) {
-                level.sendParticles(point % 3 == 0 ? ParticleTypes.WAX_ON : ParticleTypes.END_ROD,
-                        x, wave.origin.y + 0.22, z, 1, 0.015, 0.025, 0.015, 0.0);
-            } else {
-                level.sendParticles(point % 3 == 0 ? ParticleTypes.SCULK_SOUL : ParticleTypes.SOUL_FIRE_FLAME,
-                        x, wave.origin.y + 0.22, z, 1, 0.015, 0.025, 0.015, 0.0);
-            }
+            if (elapsed >= wave.durationTicks) iterator.remove();
         }
     }
 
@@ -250,9 +256,13 @@ public final class PrideAbility {
     }
 
     public static int chargeTicks(ServerPlayer player) {
-        return Math.min(MAX_CHARGE_TICKS, Math.max(0, player.getPersistentData().getInt(CHARGE_TICKS)));
+        return Math.min(PrideFallTuning.MAX_CHARGE_TICKS,
+                Math.max(0, player.getPersistentData().getInt(CHARGE_TICKS)));
     }
-    public static int chargeStage(ServerPlayer player) { return chargeTicks(player) / TICKS_PER_STAGE; }
+    public static int chargeStage(ServerPlayer player) {
+        return Math.min(PrideFallTuning.MAX_STAGE,
+                chargeTicks(player) / PrideFallTuning.CHARGE_STAGE_TICKS);
+    }
     public static int cooldownRemaining(ServerPlayer player) { return 0; }
     public static int recastRemaining(ServerPlayer player) { return 0; }
 
@@ -263,13 +273,22 @@ public final class PrideAbility {
         player.displayClientMessage(Component.literal(text).withStyle(color), true);
     }
 
+    private static void sendNear(ServerLevel level, double x, double y, double z, double range,
+                                 PrideVfxTestPacket packet) {
+        double boundedRange = Mth.clamp(range, 64.0, 512.0);
+        ModNetwork.CHANNEL.send(PacketDistributor.NEAR.with(() ->
+                new PacketDistributor.TargetPoint(x, y, z, boundedRange, level.dimension())), packet);
+    }
+
     private static final class Wave {
         final ServerLevel level; final UUID playerId; final Vec3 origin; final double maxRadius;
-        final int index; final double scale; final Set<UUID> hit = new HashSet<>();
-        double radius; long nextTick;
-        Wave(ServerLevel level, UUID playerId, Vec3 origin, double maxRadius, long nextTick, int index, double scale) {
+        final int durationTicks; final int index; final double scale; final Set<UUID> hit = new HashSet<>();
+        double radius; final long startTick; long nextDamageTick; boolean visualSent;
+        Wave(ServerLevel level, UUID playerId, Vec3 origin, double maxRadius, long startTick,
+             int durationTicks, int index, double scale) {
             this.level = level; this.playerId = playerId; this.origin = origin; this.maxRadius = maxRadius;
-            this.nextTick = nextTick; this.index = index; this.scale = scale;
+            this.startTick = startTick; this.durationTicks = durationTicks; this.index = index; this.scale = scale;
+            this.nextDamageTick = startTick;
         }
     }
 }

@@ -22,10 +22,6 @@ import java.util.Map;
 /** Client-only disposable Stage V visual ceiling for /pride_vfx_test. */
 @Mod.EventBusSubscriber(modid = GluttonyMod.MOD_ID, value = Dist.CLIENT)
 public final class PrideVfxClientEffect {
-    private static final int MAIN_RING_SAMPLES = 88;
-    private static final int ECHO_RING_SAMPLES = 36;
-    private static final int RING_TICKS = 44;
-    private static final double FINAL_RADIUS = 36.0;
     private static final RandomSource RANDOM = RandomSource.create();
     private static final Map<Integer, Descent> DESCENTS = new HashMap<>();
     private static final Map<Integer, Impact> IMPACTS = new HashMap<>();
@@ -38,6 +34,10 @@ public final class PrideVfxClientEffect {
         } else if (packet.action() == PrideVfxTestPacket.IMPACT) {
             DESCENTS.remove(packet.entityId());
             IMPACTS.put(packet.entityId(), new Impact(new Vec3(packet.x(), packet.y(), packet.z())));
+            PrideShockwaveRenderer.spawnImpact(new Vec3(packet.x(), packet.y(), packet.z()), packet.radius());
+        } else if (packet.action() == PrideVfxTestPacket.WAVE) {
+            PrideShockwaveRenderer.spawnWave(new Vec3(packet.x(), packet.y(), packet.z()), packet.radius(),
+                    packet.durationTicks(), packet.variant(), packet.delayTicks());
         }
     }
 
@@ -49,6 +49,7 @@ public final class PrideVfxClientEffect {
         if (level == null || minecraft.isPaused()) return;
         tickDescents(level);
         tickImpacts(level);
+        PrideShockwaveRenderer.tick(level);
     }
 
     private static void tickDescents(ClientLevel level) {
@@ -101,14 +102,10 @@ public final class PrideVfxClientEffect {
             int age = impact.age++;
             if (age == 0) impactFlash(level, impact.origin);
             if (age < 6) radiantColumn(level, impact.origin, age);
-            if (age >= 2 && age < RING_TICKS + 2) {
-                double progress = (age - 2.0) / RING_TICKS;
-                renderRing(level, impact.origin, progress);
+            if (age >= 6 && age < 40) {
+                aftermath(level, impact.origin, age - 6);
             }
-            if (age >= RING_TICKS - 2 && age < RING_TICKS + 34) {
-                aftermath(level, impact.origin, age - RING_TICKS);
-            }
-            if (age > RING_TICKS + 34) iterator.remove();
+            if (age > 40) iterator.remove();
         }
     }
 
@@ -132,36 +129,6 @@ public final class PrideVfxClientEffect {
             ParticleOptions sprite = RANDOM.nextBoolean() ? mote() : streak();
             add(level, sprite, origin.x + spread(0.48), origin.y + height,
                     origin.z + spread(0.48), 0.0, 0.08 + RANDOM.nextDouble() * 0.09, 0.0);
-        }
-    }
-
-    private static void renderRing(ClientLevel level, Vec3 origin, double progress) {
-        double eased = 1.0 - Math.pow(1.0 - Mth.clamp(progress, 0.0, 1.0), 2.35);
-        double radius = 1.35 + eased * (FINAL_RADIUS - 1.35);
-        double darkChance = 0.05 + 0.78 * progress * progress;
-        double deepChance = 0.18 + 0.32 * progress;
-        for (int point = 0; point < MAIN_RING_SAMPLES; point++) {
-            double angle = Math.PI * 2.0 * (point + RANDOM.nextDouble() * 0.22) / MAIN_RING_SAMPLES;
-            double roll = RANDOM.nextDouble();
-            ParticleOptions sprite;
-            if (roll < 0.11) sprite = ember(); // bright veins remain visible at the blackened edge
-            else if (roll < darkChance) sprite = shard();
-            else if (roll < darkChance + deepChance) sprite = shard();
-            else sprite = ember();
-            double jitter = spread(0.22 + progress * 0.22);
-            add(level, sprite, origin.x + Math.cos(angle) * radius + jitter,
-                    origin.y + 0.18 + spread(0.09),
-                    origin.z + Math.sin(angle) * radius + jitter,
-                    Math.cos(angle) * 0.025, 0.008, Math.sin(angle) * 0.025);
-        }
-        if (((int)(progress * RING_TICKS)) % 2 == 0) {
-            double echoRadius = Math.max(0.8, radius - 1.35);
-            for (int point = 0; point < ECHO_RING_SAMPLES; point++) {
-                double angle = Math.PI * 2.0 * point / ECHO_RING_SAMPLES;
-                add(level, ember(), origin.x + Math.cos(angle) * echoRadius,
-                        origin.y + 0.11, origin.z + Math.sin(angle) * echoRadius,
-                        0.0, 0.006, 0.0);
-            }
         }
     }
 

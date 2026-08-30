@@ -1,6 +1,7 @@
 package com.anthonyahellman.gluttony.client;
 
 import com.anthonyahellman.gluttony.GluttonyMod;
+import com.anthonyahellman.gluttony.gameplay.PrideFallTuning;
 import com.anthonyahellman.gluttony.network.AbilityStatePacket;
 import com.anthonyahellman.gluttony.registry.ModItems;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -136,7 +137,8 @@ public final class AbilityHudOverlay {
     private static void renderPrideCharge(GuiGraphics graphics, Minecraft minecraft,
                                           int x, int y, int size) {
         double progress = prideChargeStage >= 5 ? 1.0
-                : (prideChargeTicks % 1200) / 1200.0;
+                : (prideChargeTicks % PrideFallTuning.CHARGE_STAGE_TICKS)
+                / (double)PrideFallTuning.CHARGE_STAGE_TICKS;
         if (progress > 0.0) drawRadial(graphics, x, y, size, progress, 0x45FFE58A);
         String stage = prideChargeStage <= 0 ? "STAGE 0" : "STAGE " + roman(prideChargeStage);
         drawCentered(graphics, minecraft, stage, x + size / 2, y - 10,

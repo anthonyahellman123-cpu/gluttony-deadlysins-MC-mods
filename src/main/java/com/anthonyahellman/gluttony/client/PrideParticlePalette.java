@@ -8,6 +8,7 @@ public final class PrideParticlePalette {
     public static final Vector3f BRILLIANT_GOLD = rgb(255, 190, 40);  // #FFBE28
     public static final Vector3f DEEP_GOLD = rgb(180, 105, 15);       // #B4690F
     public static final Vector3f BLACKENED_GOLD = rgb(30, 20, 10);   // #1E140A
+    public static final Vector3f SIN_RED = rgb(110, 18, 22);          // #6E1216
 
     private PrideParticlePalette() {}
 
