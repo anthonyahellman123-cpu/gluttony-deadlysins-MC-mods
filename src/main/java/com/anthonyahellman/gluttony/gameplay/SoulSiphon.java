@@ -3,6 +3,8 @@ package com.anthonyahellman.gluttony.gameplay;
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.data.GluttonyData;
 import com.anthonyahellman.gluttony.data.SinData;
+import com.anthonyahellman.gluttony.network.ModNetwork;
+import com.anthonyahellman.gluttony.network.SoulSiphonVfxPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
@@ -13,6 +15,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.network.PacketDistributor;
 
 @Mod.EventBusSubscriber(modid = GluttonyMod.MOD_ID)
 public final class SoulSiphon {
@@ -35,6 +38,8 @@ public final class SoulSiphon {
         player.getPersistentData().putLong(EXPIRES, player.level().getGameTime() + BUFF_DURATION_TICKS);
         player.displayClientMessage(Component.literal("SOUL SIPHON — NEXT 3 ATTACKS EMPOWERED")
                 .withStyle(ChatFormatting.DARK_PURPLE), true);
+        sendVfxNear(player.serverLevel(), player.position(),
+                SoulSiphonVfxPacket.primed(player.getId(), BUFF_DURATION_TICKS));
         AbilityHudSync.send(player);
     }
 
@@ -56,7 +61,12 @@ public final class SoulSiphon {
         double consumed = Math.min(event.getEntity().getHealth(), event.getAmount());
         double souls = consumed * BONUS_SOULS_PER_DAMAGE;
         GluttonyData.of(player).addSouls(souls);
-        spawnSoulTrail(player.serverLevel(), event.getEntity(), player);
+        LivingEntity target = event.getEntity();
+        Vec3 source = target.getBoundingBox().getCenter();
+        Vec3 destination = player.getEyePosition().add(0.0, -0.35, 0.0);
+        sendVfxNear(player.serverLevel(), source.lerp(destination, 0.5),
+                SoulSiphonVfxPacket.extraction(player.getId(), target.getId(), source,
+                        destination, charges - 1, Math.max(0, (int)(tag.getLong(EXPIRES) - now))));
         player.displayClientMessage(Component.literal(String.format("SOUL SIPHON  +%.2f souls  (%d left)",
                 souls, charges - 1)).withStyle(ChatFormatting.DARK_PURPLE), true);
         AbilityHudSync.send(player);
@@ -70,5 +80,11 @@ public final class SoulSiphon {
             level.sendParticles(ParticleTypes.SOUL, point.x, point.y, point.z,
                     2, 0.04, 0.04, 0.04, 0.02);
         }
+    }
+
+    private static void sendVfxNear(ServerLevel level, Vec3 origin, SoulSiphonVfxPacket packet) {
+        ModNetwork.CHANNEL.send(PacketDistributor.NEAR.with(() ->
+                new PacketDistributor.TargetPoint(origin.x, origin.y, origin.z, 96.0,
+                        level.dimension())), packet);
     }
 }

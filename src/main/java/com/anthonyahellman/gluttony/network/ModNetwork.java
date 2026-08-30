@@ -6,7 +6,7 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class ModNetwork {
-    private static final String VERSION = "10";
+    private static final String VERSION = "11";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(GluttonyMod.MOD_ID, "main"),
             () -> VERSION,
@@ -36,5 +36,8 @@ public final class ModNetwork {
         CHANNEL.registerMessage(7, PrideVfxTestPacket.class,
                 PrideVfxTestPacket::encode, PrideVfxTestPacket::decode,
                 PrideVfxTestPacket::handle);
+        CHANNEL.registerMessage(8, SoulSiphonVfxPacket.class,
+                SoulSiphonVfxPacket::encode, SoulSiphonVfxPacket::decode,
+                SoulSiphonVfxPacket::handle);
     }
 }

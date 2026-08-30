@@ -47,6 +47,14 @@ public final class ClientModEvents {
                 sprites -> new PrideSpriteParticle.Provider(sprites, PrideSpriteParticle.Kind.SHARD));
         event.registerSpriteSet(ModParticles.PRIDE_GOLDEN_EMBER.get(),
                 sprites -> new PrideSpriteParticle.Provider(sprites, PrideSpriteParticle.Kind.EMBER));
+        event.registerSpriteSet(ModParticles.GLUTTONY_SOUL_CORE.get(),
+                sprites -> new GluttonySpriteParticle.Provider(sprites, GluttonySpriteParticle.Kind.SOUL_CORE));
+        event.registerSpriteSet(ModParticles.GLUTTONY_SOUL_WISP.get(),
+                sprites -> new GluttonySpriteParticle.Provider(sprites, GluttonySpriteParticle.Kind.SOUL_WISP));
+        event.registerSpriteSet(ModParticles.GLUTTONY_WISP.get(),
+                sprites -> new GluttonySpriteParticle.Provider(sprites, GluttonySpriteParticle.Kind.GLUTTONY_WISP));
+        event.registerSpriteSet(ModParticles.GLUTTONY_HUNGER_FLICKER.get(),
+                sprites -> new GluttonySpriteParticle.Provider(sprites, GluttonySpriteParticle.Kind.HUNGER_FLICKER));
     }
 
     @SubscribeEvent

@@ -16,6 +16,11 @@ public final class ModParticles {
     public static final RegistryObject<SimpleParticleType> PRIDE_BLACKENED_GOLD_SHARD = register("pride_blackened_gold_shard");
     public static final RegistryObject<SimpleParticleType> PRIDE_GOLDEN_EMBER = register("pride_golden_ember");
 
+    public static final RegistryObject<SimpleParticleType> GLUTTONY_SOUL_CORE = register("gluttony_soul_core");
+    public static final RegistryObject<SimpleParticleType> GLUTTONY_SOUL_WISP = register("gluttony_soul_wisp");
+    public static final RegistryObject<SimpleParticleType> GLUTTONY_WISP = register("gluttony_wisp");
+    public static final RegistryObject<SimpleParticleType> GLUTTONY_HUNGER_FLICKER = register("gluttony_hunger_flicker");
+
     private ModParticles() {}
 
     private static RegistryObject<SimpleParticleType> register(String name) {
