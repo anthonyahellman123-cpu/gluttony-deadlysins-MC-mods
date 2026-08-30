@@ -3,6 +3,8 @@ package com.anthonyahellman.gluttony.gameplay;
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.data.GluttonyData;
 import com.anthonyahellman.gluttony.data.SinData;
+import com.anthonyahellman.gluttony.network.DevourVfxPacket;
+import com.anthonyahellman.gluttony.network.ModNetwork;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -11,10 +13,12 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.network.PacketDistributor;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -37,6 +41,7 @@ public final class Devour {
     private static final String CHARGES = "RootsOfSinDevourCharges";
     private static final String EXPIRES = "RootsOfSinDevourExpires";
     private static final String CHARGED_BONUS = "RootsOfSinDevourChargedBonus";
+    private static final String CHARGE_STRENGTH = "RootsOfSinDevourChargeStrength";
     private static final String LAST_PROC_TICK = "RootsOfSinDevourLastProcTick";
     private static final List<PendingBite> PENDING = new ArrayList<>();
 
@@ -57,6 +62,7 @@ public final class Devour {
         tag.putInt(CHARGES, EMPOWERED_ATTACKS);
         tag.putLong(EXPIRES, player.level().getGameTime() + BUFF_DURATION_TICKS);
         tag.putDouble(CHARGED_BONUS, bonus);
+        tag.putDouble(CHARGE_STRENGTH, charge);
         player.displayClientMessage(Component.literal(String.format(
                 "DEVOUR ARMED — 3 ATTACKS  |  COMMITTED %.2f HEALTH, %.2f ATTACK",
                 healthSpent, attackSpent)).withStyle(ChatFormatting.DARK_RED), true);
@@ -79,9 +85,11 @@ public final class Devour {
         tag.putLong(LAST_PROC_TICK, now + 3L);
         tag.putInt(CHARGES, charges - 1);
         double chargedBonus = tag.getDouble(CHARGED_BONUS);
+        double chargeStrength = tag.getDouble(CHARGE_STRENGTH);
         tag.putDouble(CHARGED_BONUS, 0.0);
+        tag.putDouble(CHARGE_STRENGTH, 0.0);
         PENDING.add(new PendingBite(player.serverLevel(), player.getUUID(), event.getEntity().getUUID(),
-                now + 1L, chargedBonus));
+                now + 1L, chargedBonus, chargeStrength));
     }
 
     @SubscribeEvent
@@ -97,11 +105,12 @@ public final class Devour {
             Entity prey = level.getEntity(bite.targetId);
             if (!(source instanceof ServerPlayer player) || !(prey instanceof LivingEntity target)
                     || !target.isAlive()) continue;
-            consume(player, target, bite.chargedBonus);
+            consume(player, target, bite.chargedBonus, bite.chargeStrength);
         }
     }
 
-    private static void consume(ServerPlayer player, LivingEntity target, double chargedBonus) {
+    private static void consume(ServerPlayer player, LivingEntity target, double chargedBonus,
+                                double chargeStrength) {
         float missing = Math.max(0.0F, target.getMaxHealth() - target.getHealth());
         float calculated = (float)(missing * MISSING_HP_FRACTION + chargedBonus);
         if (calculated <= 0.0F) return;
@@ -112,6 +121,13 @@ public final class Devour {
         player.getPersistentData().remove(DEVOUR_DAMAGE);
         if (!hurt) return;
 
+        Vec3 source = target.getBoundingBox().getCenter();
+        Vec3 destination = player.getEyePosition().add(0.0, -0.35, 0.0);
+        sendVfxNear(player.serverLevel(), source.lerp(destination, 0.5),
+                new DevourVfxPacket(player.getId(), target.getId(), source.x, source.y, source.z,
+                        destination.x, destination.y, destination.z,
+                        Math.max(0.0F, Math.min(1.0F, (float)chargeStrength))));
+
         double consumed = Math.max(0.0, before - Math.max(0.0F, target.getHealth()));
         GluttonyData data = GluttonyData.of(player);
         data.addSouls(consumed);
@@ -121,7 +137,6 @@ public final class Devour {
                     consumed * KILL_ATTACK_CONVERSION);
             SoulEvents.refreshAttributes(player);
         }
-        SoulSiphon.spawnSoulTrail(player.serverLevel(), target, player);
         player.displayClientMessage(Component.literal(String.format(
                 "DEVOUR BITE  %.2f HP CONSUMED%s", consumed,
                 !target.isAlive() ? " — EXECUTED" : "")).withStyle(ChatFormatting.DARK_RED), true);
@@ -145,6 +160,12 @@ public final class Devour {
         return instance == null ? 0.0 : instance.getValue();
     }
 
+    private static void sendVfxNear(ServerLevel level, Vec3 origin, DevourVfxPacket packet) {
+        ModNetwork.CHANNEL.send(PacketDistributor.NEAR.with(() ->
+                new PacketDistributor.TargetPoint(origin.x, origin.y, origin.z, 96.0,
+                        level.dimension())), packet);
+    }
+
     private record PendingBite(ServerLevel level, UUID playerId, UUID targetId,
-                               long executeAt, double chargedBonus) {}
+                               long executeAt, double chargedBonus, double chargeStrength) {}
 }

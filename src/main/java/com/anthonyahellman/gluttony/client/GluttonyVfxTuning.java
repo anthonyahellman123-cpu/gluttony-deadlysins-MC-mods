@@ -13,5 +13,11 @@ public final class GluttonyVfxTuning {
     public static final int CATCH_SEGMENTS = 9;
     public static final int CONSUMPTION_FLICKERS = 12;
 
+    public static final int DEVOUR_TICKS = 13;
+    public static final int MAX_ACTIVE_DEVOURS = 24;
+    public static final int DEVOUR_JAW_POINTS = 7;
+    public static final int DEVOUR_TRAIL_POINTS = 3;
+    public static final int DEVOUR_CONSUMPTION_FLICKERS = 10;
+
     private GluttonyVfxTuning() {}
 }
