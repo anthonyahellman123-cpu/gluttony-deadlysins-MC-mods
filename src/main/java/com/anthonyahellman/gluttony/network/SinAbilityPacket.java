@@ -20,6 +20,7 @@ import java.util.function.Supplier;
 public record SinAbilityPacket(int action, int chargeTicks) {
     public static final int PRESS = 0;
     public static final int RELEASE = 1;
+    public static final int HOLD = 2;
 
     public static void encode(SinAbilityPacket packet, FriendlyByteBuf buffer) {
         buffer.writeVarInt(packet.action);
@@ -47,9 +48,12 @@ public record SinAbilityPacket(int action, int chargeTicks) {
         GluttonyData.Ability selected = GluttonyData.of(player).selectedAbility();
         if (packet.action == PRESS) {
             if (selected == GluttonyData.Ability.SOUL_SIPHON) SoulSiphon.arm(player);
+            else if (selected == GluttonyData.Ability.DEVOUR) Devour.begin(player);
             else if (selected == GluttonyData.Ability.BEELZEBUB) Beelzebub.toggle(player);
+        } else if (packet.action == HOLD && selected == GluttonyData.Ability.DEVOUR) {
+            Devour.heartbeat(player);
         } else if (packet.action == RELEASE && selected == GluttonyData.Ability.DEVOUR) {
-            Devour.arm(player, packet.chargeTicks);
+            Devour.release(player);
         }
     }
 

@@ -12,7 +12,7 @@ import java.util.function.Supplier;
 public record DevourVfxPacket(int casterId, int targetId,
                               double sourceX, double sourceY, double sourceZ,
                               double destinationX, double destinationY, double destinationZ,
-                              float chargeStrength) {
+                              double committedHealth) {
     public static void encode(DevourVfxPacket packet, FriendlyByteBuf buffer) {
         buffer.writeVarInt(packet.casterId);
         buffer.writeVarInt(packet.targetId);
@@ -22,14 +22,14 @@ public record DevourVfxPacket(int casterId, int targetId,
         buffer.writeDouble(packet.destinationX);
         buffer.writeDouble(packet.destinationY);
         buffer.writeDouble(packet.destinationZ);
-        buffer.writeFloat(packet.chargeStrength);
+        buffer.writeDouble(packet.committedHealth);
     }
 
     public static DevourVfxPacket decode(FriendlyByteBuf buffer) {
         return new DevourVfxPacket(buffer.readVarInt(), buffer.readVarInt(),
                 buffer.readDouble(), buffer.readDouble(), buffer.readDouble(),
                 buffer.readDouble(), buffer.readDouble(), buffer.readDouble(),
-                buffer.readFloat());
+                buffer.readDouble());
     }
 
     public static void handle(DevourVfxPacket packet,

@@ -36,6 +36,10 @@ public final class SoulEvents {
         GluttonyData data = GluttonyData.of(player);
         if (!data.active()) return;
 
+        // Devour awards only what its bite actually consumed; bypass the normal
+        // max-health kill extraction path so overkill cannot create phantom gains.
+        if (player.getPersistentData().getBoolean(Devour.DEVOUR_DAMAGE_TAG)) return;
+
         boolean siphonKill = victim.getPersistentData().getBoolean(SoulSiphon.SIPHON_DAMAGE_TAG);
         int oldLevel = data.level();
 

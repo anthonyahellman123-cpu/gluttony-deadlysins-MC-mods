@@ -47,6 +47,10 @@ public final class ClientForgeEvents {
             }
         } else if (down) {
             abilityHeldTicks++;
+            if (abilityHeldTicks % 5 == 0) {
+                ModNetwork.CHANNEL.sendToServer(new SinAbilityPacket(
+                        SinAbilityPacket.HOLD, abilityHeldTicks));
+            }
         } else if (abilityHeld) {
             if (minecraft.screen == null) {
                 ModNetwork.CHANNEL.sendToServer(new SinAbilityPacket(

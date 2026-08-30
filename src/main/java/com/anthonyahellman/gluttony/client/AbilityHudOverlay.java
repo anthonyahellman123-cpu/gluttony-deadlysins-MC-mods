@@ -3,6 +3,7 @@ package com.anthonyahellman.gluttony.client;
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.gameplay.PrideFallTuning;
 import com.anthonyahellman.gluttony.network.AbilityStatePacket;
+import com.anthonyahellman.gluttony.network.DevourChargePacket;
 import com.anthonyahellman.gluttony.registry.ModItems;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
@@ -44,6 +45,10 @@ public final class AbilityHudOverlay {
     private static int gluttonyAbility;
     private static final int[] gluttonyTargetModes = new int[3];
     private static boolean statsVisible;
+    private static boolean devourCharging;
+    private static double devourCommittedHealth;
+    private static double devourAvailableHealth;
+    private static double devourMaximumHealth;
 
     private AbilityHudOverlay() {}
 
@@ -67,6 +72,16 @@ public final class AbilityHudOverlay {
         gluttonyTargetModes[0] = packet.siphonTargetMode();
         gluttonyTargetModes[1] = packet.devourTargetMode();
         gluttonyTargetModes[2] = packet.beelzebubTargetMode();
+        if (sin != 1 || gluttonyAbility != 1) devourCharging = false;
+    }
+
+    public static void updateDevourCharge(DevourChargePacket packet) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null || minecraft.player.getId() != packet.casterId()) return;
+        devourCharging = packet.active();
+        devourCommittedHealth = Math.max(0.0, packet.committedHealth());
+        devourAvailableHealth = Math.max(0.0, packet.availableHealth());
+        devourMaximumHealth = Math.max(1.0, packet.maximumHealth());
     }
 
     public static void toggleStats() {
@@ -132,6 +147,30 @@ public final class AbilityHudOverlay {
         if (sin == 2 && unlocked) renderPrideCharge(graphics, minecraft, x, y, size);
         graphics.pose().popPose();
 
+        if (devourCharging) renderDevourCharge(graphics, minecraft);
+
+    }
+
+    private static void renderDevourCharge(GuiGraphics graphics, Minecraft minecraft) {
+        int width = 184;
+        int height = 56;
+        int x = graphics.guiWidth() / 2 - width / 2;
+        int y = graphics.guiHeight() - 92;
+        double extractionBonus = devourCommittedHealth * 0.5;
+        int teeth = (int) Math.floor(devourCommittedHealth / 20.0);
+        graphics.fill(x, y, x + width, y + height, 0xD0120508);
+        graphics.fill(x, y, x + 3, y + height, 0xFF9B2335);
+        graphics.fill(x, y, x + width, y + 2, 0xFFCE4052);
+        drawCentered(graphics, minecraft, "DEVOUR", x + width / 2, y + 7, 0xFFFFB8B8);
+        graphics.drawString(minecraft.font,
+                String.format("HP COMMITTED: %.1f  (%d teeth)", devourCommittedHealth, teeth),
+                x + 9, y + 21, 0xFFFF7777, false);
+        graphics.drawString(minecraft.font,
+                String.format("EXTRACTION BONUS: +%.1f%%", extractionBonus),
+                x + 9, y + 33, 0xFFFFD0A8, false);
+        graphics.drawString(minecraft.font,
+                String.format("GLUTTONY HP: %.1f / %.1f", devourAvailableHealth, devourMaximumHealth),
+                x + 9, y + 45, 0xFFE6C6C6, false);
     }
 
     private static void renderPrideCharge(GuiGraphics graphics, Minecraft minecraft,
