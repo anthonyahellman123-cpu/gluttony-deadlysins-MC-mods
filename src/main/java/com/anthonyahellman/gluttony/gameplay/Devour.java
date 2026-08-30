@@ -16,6 +16,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
+import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
@@ -88,18 +89,20 @@ public final class Devour {
         double chargeStrength = tag.getDouble(CHARGE_STRENGTH);
         tag.putDouble(CHARGED_BONUS, 0.0);
         tag.putDouble(CHARGE_STRENGTH, 0.0);
+        // LivingDamageEvent is still inside the original hit's damage call. Queue the bite until
+        // the server-tick tail so the normal hit has fully resolved before the distinct follow-up.
         PENDING.add(new PendingBite(player.serverLevel(), player.getUUID(), event.getEntity().getUUID(),
-                now + 1L, chargedBonus, chargeStrength));
+                now, chargedBonus, chargeStrength));
     }
 
     @SubscribeEvent
-    public static void levelTick(TickEvent.LevelTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !(event.level instanceof ServerLevel level)) return;
-        long now = level.getGameTime();
+    public static void serverTick(TickEvent.ServerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
         Iterator<PendingBite> iterator = PENDING.iterator();
         while (iterator.hasNext()) {
             PendingBite bite = iterator.next();
-            if (bite.level != level || now < bite.executeAt) continue;
+            ServerLevel level = bite.level;
+            if (level.getGameTime() < bite.executeAt) continue;
             iterator.remove();
             Entity source = level.getEntity(bite.playerId);
             Entity prey = level.getEntity(bite.targetId);
@@ -109,16 +112,25 @@ public final class Devour {
         }
     }
 
+    @SubscribeEvent
+    public static void serverStopped(ServerStoppedEvent event) {
+        PENDING.clear();
+    }
+
     private static void consume(ServerPlayer player, LivingEntity target, double chargedBonus,
                                 double chargeStrength) {
         float missing = Math.max(0.0F, target.getMaxHealth() - target.getHealth());
         float calculated = (float)(missing * MISSING_HP_FRACTION + chargedBonus);
         if (calculated <= 0.0F) return;
         float before = target.getHealth();
+        boolean hurt;
         player.getPersistentData().putBoolean(DEVOUR_DAMAGE, true);
-        target.invulnerableTime = 0;
-        boolean hurt = target.hurt(player.damageSources().indirectMagic(player, player), calculated);
-        player.getPersistentData().remove(DEVOUR_DAMAGE);
+        try {
+            target.invulnerableTime = 0;
+            hurt = target.hurt(player.damageSources().indirectMagic(player, player), calculated);
+        } finally {
+            player.getPersistentData().remove(DEVOUR_DAMAGE);
+        }
         if (!hurt) return;
 
         Vec3 source = target.getBoundingBox().getCenter();

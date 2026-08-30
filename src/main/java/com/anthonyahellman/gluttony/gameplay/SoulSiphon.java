@@ -6,9 +6,7 @@ import com.anthonyahellman.gluttony.data.SinData;
 import com.anthonyahellman.gluttony.network.ModNetwork;
 import com.anthonyahellman.gluttony.network.SoulSiphonVfxPacket;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
@@ -70,16 +68,6 @@ public final class SoulSiphon {
         player.displayClientMessage(Component.literal(String.format("SOUL SIPHON  +%.2f souls  (%d left)",
                 souls, charges - 1)).withStyle(ChatFormatting.DARK_PURPLE), true);
         AbilityHudSync.send(player);
-    }
-
-    public static void spawnSoulTrail(ServerLevel level, LivingEntity target, ServerPlayer player) {
-        Vec3 from = target.getBoundingBox().getCenter();
-        Vec3 to = player.getEyePosition().add(0.0, -0.35, 0.0);
-        for (int i = 0; i <= 12; i++) {
-            Vec3 point = from.lerp(to, i / 12.0);
-            level.sendParticles(ParticleTypes.SOUL, point.x, point.y, point.z,
-                    2, 0.04, 0.04, 0.04, 0.02);
-        }
     }
 
     private static void sendVfx(ServerPlayer player, SoulSiphonVfxPacket packet) {

@@ -3,8 +3,9 @@ package com.anthonyahellman.gluttony.gameplay;
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.data.GluttonyData;
 import com.anthonyahellman.gluttony.data.SinData;
+import com.anthonyahellman.gluttony.network.BeelzebubVfxPacket;
+import com.anthonyahellman.gluttony.network.ModNetwork;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -14,6 +15,10 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.network.PacketDistributor;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Mod.EventBusSubscriber(modid = GluttonyMod.MOD_ID)
 public final class Beelzebub {
@@ -28,6 +33,7 @@ public final class Beelzebub {
     private static final double EXTRACTED_HEALTH_DAMAGE_FACTOR = 0.35;
     private static final double SOUL_COST_PER_PULSE = 1.0;
     private static final double SOULS_PER_DAMAGE = 0.5;
+    private static final int MAX_VISUAL_TARGETS_PER_PULSE = 32;
 
     private Beelzebub() {}
 
@@ -69,11 +75,7 @@ public final class Beelzebub {
         }
 
         double radius = radius(player);
-
-        player.serverLevel().sendParticles(ParticleTypes.SCULK_SOUL, player.getX(), player.getY() + 0.8,
-                player.getZ(), 28, radius * 0.45, radius * 0.45, radius * 0.45, 0.02);
-        player.serverLevel().sendParticles(ParticleTypes.SOUL_FIRE_FLAME, player.getX(), player.getY() + 0.5,
-                player.getZ(), 12, radius * 0.35, radius * 0.35, radius * 0.35, 0.01);
+        List<Integer> visualTargets = new ArrayList<>();
 
         for (LivingEntity target : player.level().getEntitiesOfClass(LivingEntity.class,
                 player.getBoundingBox().inflate(radius), entity -> entity != player && entity.isAlive()
@@ -88,15 +90,22 @@ public final class Beelzebub {
                     ? target.getMaxHealth() * (float)FIRST_BITE_MAX_HP_FRACTION
                     : (float)(1.0 + player.getAttributeValue(Attributes.ATTACK_DAMAGE) * ATTACK_DAMAGE_FACTOR
                     + Math.sqrt(Math.max(0.0, data.extractedHealth())) * EXTRACTED_HEALTH_DAMAGE_FACTOR);
-            boolean hurt = target.hurt(player.damageSources().indirectMagic(player, player), damage);
-            target.getPersistentData().remove(SoulSiphon.SIPHON_DAMAGE_TAG);
+            boolean hurt;
+            try {
+                hurt = target.hurt(player.damageSources().indirectMagic(player, player), damage);
+            } finally {
+                target.getPersistentData().remove(SoulSiphon.SIPHON_DAMAGE_TAG);
+            }
             if (!hurt) continue;
             if (firstBite) target.getPersistentData().putLong(firstBiteKey, activation);
             double dealt = Math.max(0.0, before - target.getHealth());
             data.addSouls(dealt * SOULS_PER_DAMAGE);
             Devour.extractUniqueStats(player, target, 0.05);
-            SoulSiphon.spawnSoulTrail(player.serverLevel(), target, player);
+            if (visualTargets.size() < MAX_VISUAL_TARGETS_PER_PULSE) {
+                visualTargets.add(target.getId());
+            }
         }
+        if (!visualTargets.isEmpty()) sendVfx(player, visualTargets, radius);
         AbilityHudSync.send(player);
     }
 
@@ -111,5 +120,11 @@ public final class Beelzebub {
         player.getPersistentData().putBoolean(ACTIVE, false);
         player.displayClientMessage(Component.literal(message).withStyle(ChatFormatting.GRAY), true);
         AbilityHudSync.send(player);
+    }
+
+    private static void sendVfx(ServerPlayer player, List<Integer> targetIds, double radius) {
+        int[] ids = targetIds.stream().mapToInt(Integer::intValue).toArray();
+        ModNetwork.CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> player),
+                new BeelzebubVfxPacket(player.getId(), (float)radius, ids));
     }
 }

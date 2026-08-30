@@ -44,47 +44,50 @@ public final class DevourVfxClient {
             int age = bite.age++;
             Vec3 source = source(level, bite);
             Vec3 destination = destination(level, bite);
-            if (age <= 2) closeJaws(level, bite, source, age);
-            if (age == 3) contact(level, bite, source);
-            if (age == 4) expose(level, bite, source);
-            if (age >= 5 && age <= 10) rip(level, bite, source, destination, age);
-            if (age == 11) consume(level, bite, destination);
+            if (age <= 3) closeJaws(level, bite, source, age);
+            if (age == 4) contact(level, bite, source);
+            if (age == 5) expose(level, bite, source);
+            if (age >= 6 && age <= 12) rip(level, bite, source, destination, age);
+            if (age == 13) consume(level, bite, destination);
             if (age >= GluttonyVfxTuning.DEVOUR_TICKS) iterator.remove();
         }
     }
 
     private static void closeJaws(ClientLevel level, Bite bite, Vec3 center, int age) {
-        double progress = (age + 1) / 3.0;
-        double scale = 0.85 + bite.charge * 0.55;
-        double gap = (1.05 - progress * 0.82) * scale;
-        double height = (0.72 - progress * 0.20) * scale;
+        double progress = (age + 1) / 4.0;
+        double scale = 0.95 + bite.charge * 0.70;
+        double gap = (1.28 - progress * 1.10) * scale;
+        double height = (0.78 - progress * 0.16) * scale;
         for (int side : new int[]{-1, 1}) {
             for (int i = 0; i < GluttonyVfxTuning.DEVOUR_JAW_POINTS; i++) {
                 double t = i / (double)(GluttonyVfxTuning.DEVOUR_JAW_POINTS - 1);
                 double y = (t - 0.5) * height * 1.65;
-                double curve = Math.sin(t * Math.PI) * 0.30 * scale;
+                double curve = Math.sin(t * Math.PI) * 0.38 * scale;
                 Vec3 offset = bite.side.scale(side * (gap + curve)).add(0.0, y, 0.0);
-                Vec3 velocity = bite.side.scale(-side * (0.10 + progress * 0.06));
+                Vec3 velocity = bite.side.scale(-side * (0.13 + progress * 0.09));
                 add(level, gluttony(), center.add(offset), velocity);
-                if ((i + age) % 2 == 0) add(level, hunger(), center.add(offset.scale(0.92)),
-                        velocity.scale(1.25));
+                if ((i + age) % 2 == 0) {
+                    Vec3 inner = bite.side.scale(side * Math.max(0.08, gap * 0.62))
+                            .add(0.0, y * 0.78, 0.0);
+                    add(level, hunger(), center.add(inner), velocity.scale(1.35));
+                }
             }
         }
     }
 
     private static void contact(ClientLevel level, Bite bite, Vec3 center) {
-        int count = 8 + Math.round(bite.charge * 6.0F);
+        int count = 14 + Math.round(bite.charge * 10.0F);
         for (int i = 0; i < count; i++) {
-            Vec3 offset = bite.side.scale(spread(0.38)).add(0.0, spread(0.48), spread(0.30));
-            add(level, hunger(), center.add(offset), offset.scale(-0.34));
+            Vec3 offset = bite.side.scale(spread(0.50)).add(0.0, spread(0.54), spread(0.34));
+            add(level, hunger(), center.add(offset), offset.scale(-0.46));
         }
-        for (int i = 0; i < 4; i++) add(level, gluttony(), center.add(randomOffset(0.42)),
-                randomOffset(0.025));
+        for (int i = 0; i < 7; i++) add(level, gluttony(), center.add(randomOffset(0.46)),
+                randomOffset(0.032));
     }
 
     private static void expose(ClientLevel level, Bite bite, Vec3 center) {
         add(level, soulCore(), center, Vec3.ZERO);
-        int count = 5 + Math.round(bite.charge * 4.0F);
+        int count = 7 + Math.round(bite.charge * 6.0F);
         for (int i = 0; i < count; i++) {
             Vec3 offset = randomOffset(0.16 + bite.charge * 0.08);
             add(level, soulWisp(), center.add(offset), offset.scale(-0.10));
@@ -92,12 +95,12 @@ public final class DevourVfxClient {
     }
 
     private static void rip(ClientLevel level, Bite bite, Vec3 source, Vec3 destination, int age) {
-        double progress = (age - 4) / 6.0;
-        double violent = 0.12 + 0.88 * Math.pow(progress, 0.72);
+        double progress = (age - 5) / 7.0;
+        double violent = 0.10 + 0.90 * Math.pow(progress, 0.62);
         Vec3 midpoint = source.lerp(destination, 0.5).add(bite.side.scale(0.34 * (1.0 - progress)));
         Vec3 point = quadratic(source, midpoint, destination, violent);
         Vec3 next = quadratic(source, midpoint, destination, Math.min(1.0, violent + 0.12));
-        Vec3 velocity = next.subtract(point).scale(0.30);
+        Vec3 velocity = next.subtract(point).scale(0.38);
         add(level, soulCore(), point, velocity);
         int trails = GluttonyVfxTuning.DEVOUR_TRAIL_POINTS + Math.round(bite.charge * 2.0F);
         for (int i = 0; i < trails; i++) {

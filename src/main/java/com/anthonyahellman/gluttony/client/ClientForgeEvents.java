@@ -26,6 +26,7 @@ public final class ClientForgeEvents {
         // This avoids relying on separate annotation-discovered subscribers for each effect.
         SoulSiphonVfxClient.tick();
         DevourVfxClient.tick();
+        BeelzebubVfxClient.tick();
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.level == null || minecraft.isPaused()) return;
         if (AbilityHudOverlay.greedAwakened()) {

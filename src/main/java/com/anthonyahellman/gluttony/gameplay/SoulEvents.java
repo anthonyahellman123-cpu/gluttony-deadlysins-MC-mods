@@ -53,8 +53,6 @@ public final class SoulEvents {
             applyAttributes(player, data);
         }
 
-        SoulSiphon.spawnSoulTrail(player.serverLevel(), victim, player);
-
         if (data.awakening()) {
             data.stabilize();
             player.getFoodData().setFoodLevel(Math.max(6, player.getFoodData().getFoodLevel()));
