@@ -1,5 +1,6 @@
 package com.anthonyahellman.gluttony.client;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.anthonyahellman.gluttony.GluttonyMod;
 import com.anthonyahellman.gluttony.network.GreedStatePacket;
 import com.anthonyahellman.gluttony.network.ModNetwork;
@@ -69,6 +70,7 @@ public final class SinMenuScreen extends Screen {
         frame(graphics, left, top, panelWidth, panelHeight, accentFor(sin));
         graphics.fill(left + 3, top + 3, left + panelWidth - 3, top + 23, 0xFF1B1410);
         centered(graphics, "THE ROOTS OF SIN", width / 2, top + 9, 0xFFFFE7A3);
+        renderSigilWatermark(graphics, left, top, panelWidth, panelHeight, sigilFor(sin));
 
         if (sin == 1) renderGluttony(graphics, left, top, panelWidth);
         else if (sin == 2) renderPride(graphics, left, top, panelWidth);
@@ -80,7 +82,7 @@ public final class SinMenuScreen extends Screen {
     }
 
     private void renderGluttony(GuiGraphics graphics, int left, int top, int width) {
-        drawIdentity(graphics, left, top, GLUTTONY, "GLUTTONY", "BEELZEBUB", 0xFF9B2335);
+        drawIdentity(graphics, left, top, "GLUTTONY", "BEELZEBUB", 0xFF9B2335);
         int x = left + 92;
         int y = top + 39;
         graphics.drawString(font, "PROGRESSION", x, y, 0xFFFFA7AE, false);
@@ -116,7 +118,7 @@ public final class SinMenuScreen extends Screen {
     }
 
     private void renderPride(GuiGraphics graphics, int left, int top, int width) {
-        drawIdentity(graphics, left, top, PRIDE, "PRIDE", "LUCIFER", 0xFFE3B12B);
+        drawIdentity(graphics, left, top, "PRIDE", "LUCIFER", 0xFFE3B12B);
         PrideStatePacket state = PrideClientState.get();
         int x = left + 92;
         int y = top + 39;
@@ -143,7 +145,7 @@ public final class SinMenuScreen extends Screen {
     }
 
     private void renderGreed(GuiGraphics graphics, int left, int top, int width) {
-        drawIdentity(graphics, left, top, GREED, "GREED", "MAMMON", 0xFFD8B642);
+        drawIdentity(graphics, left, top, "GREED", "MAMMON", 0xFFD8B642);
         GreedStatePacket state = GreedClientState.get();
         int x = left + 92;
         int y = top + 39;
@@ -189,15 +191,36 @@ public final class SinMenuScreen extends Screen {
         centered(graphics, "G has no Sin ability to invoke.", left + width / 2, top + 114, 0xFF81766F);
     }
 
-    private void drawIdentity(GuiGraphics graphics, int left, int top, ResourceLocation icon,
+    private void renderSigilWatermark(GuiGraphics graphics, int left, int top, int panelWidth,
+                                      int panelHeight, ResourceLocation sigil) {
+        if (sigil == null) return;
+        int bodyTop = top + 24;
+        int bodyHeight = panelHeight - 44;
+        int size = Math.min(220, Math.min(panelWidth - 48, bodyHeight - 24));
+        if (size <= 0) return;
+        int x = left + (panelWidth - size) / 2;
+        int y = bodyTop + (bodyHeight - size) / 2;
+
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 0.16F);
+        graphics.blit(sigil, x, y, 0, 0, size, size, 128, 128);
+        graphics.flush();
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.disableBlend();
+    }
+
+    private void drawIdentity(GuiGraphics graphics, int left, int top,
                               String sin, String demon, int accent) {
         int x = left + 15;
         int y = top + 36;
         graphics.fill(x - 4, y - 4, x + 68, y + 91, 0xD0120F10);
         frame(graphics, x - 4, y - 4, 72, 91, accent);
-        graphics.blit(icon, x, y, 0, 0, 64, 64, 128, 128);
-        centered(graphics, sin, x + 32, y + 67, 0xFFFFFFFF);
-        centered(graphics, demon, x + 32, y + 78, accent);
+        centered(graphics, "SIN", x + 32, y + 14, accent);
+        graphics.fill(x + 12, y + 29, x + 52, y + 30, accent);
+        centered(graphics, sin, x + 32, y + 40, 0xFFFFFFFF);
+        centered(graphics, demon, x + 32, y + 55, accent);
+        graphics.fill(x + 20, y + 72, x + 44, y + 73, accent);
     }
 
     private void trial(GuiGraphics graphics, int x, int y, String name, int current, int required) {
@@ -236,6 +259,10 @@ public final class SinMenuScreen extends Screen {
 
     private static int accentFor(int sin) {
         return sin == 1 ? 0xFF9B2335 : sin == 2 ? 0xFFE3B12B : sin == 3 ? 0xFFD8B642 : 0xFF4B4542;
+    }
+
+    private static ResourceLocation sigilFor(int sin) {
+        return sin == 1 ? GLUTTONY : sin == 2 ? PRIDE : sin == 3 ? GREED : null;
     }
 
     private static ResourceLocation sigil(String name) {
