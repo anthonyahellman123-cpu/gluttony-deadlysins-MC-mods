@@ -113,8 +113,12 @@ public final class SoulEvents {
 
     private static void applyAttributes(ServerPlayer player, GluttonyData data) {
         boolean gluttony = SinData.selected(player) == SinData.NaturalSin.GLUTTONY;
-        setModifier(player.getAttribute(Attributes.MAX_HEALTH), HEALTH_ID, "Gluttony consumed health",
+        AttributeInstance maxHealth = player.getAttribute(Attributes.MAX_HEALTH);
+        setModifier(maxHealth, HEALTH_ID, "Gluttony consumed health",
                 gluttony ? data.extractedHealth() : 0.0);
+        if (gluttony && maxHealth != null) {
+            data.recordHistoricalMaxHealth(maxHealth.getBaseValue() + data.extractedHealth());
+        }
         setModifier(player.getAttribute(Attributes.ATTACK_DAMAGE), ATTACK_ID, "Gluttony consumed attack",
                 gluttony ? data.extractedAttack() : 0.0);
         if (player.getHealth() > player.getMaxHealth()) player.setHealth(player.getMaxHealth());

@@ -14,6 +14,7 @@ public final class GluttonyData {
     private static final String LEVEL = "Level";
     private static final String HEALTH = "ExtractedHealth";
     private static final String ATTACK = "ExtractedAttack";
+    private static final String HISTORICAL_MAX_HEALTH = "HistoricalGluttonyMaxHealth";
     private static final String SELECTED_ABILITY = "SelectedAbility";
     private static final String SIPHON_TARGET_MODE = "SoulSiphonTargetMode";
     private static final String DEVOUR_TARGET_MODE = "DevourTargetMode";
@@ -59,6 +60,14 @@ public final class GluttonyData {
     public int level() { return Math.max(1, tag.getInt(LEVEL)); }
     public double extractedHealth() { return tag.getDouble(HEALTH); }
     public double extractedAttack() { return tag.getDouble(ATTACK); }
+    public double historicalMaxHealth() {
+        // Existing saves migrate from their current consumed-health total. The normal
+        // attribute refresh records the player's actual non-Gluttony base afterward.
+        return Math.max(tag.getDouble(HISTORICAL_MAX_HEALTH), 20.0 + extractedHealth());
+    }
+    public void recordHistoricalMaxHealth(double amount) {
+        if (amount > historicalMaxHealth()) tag.putDouble(HISTORICAL_MAX_HEALTH, amount);
+    }
     public Ability selectedAbility() {
         int stored = tag.getInt(SELECTED_ABILITY);
         Ability[] values = Ability.values();

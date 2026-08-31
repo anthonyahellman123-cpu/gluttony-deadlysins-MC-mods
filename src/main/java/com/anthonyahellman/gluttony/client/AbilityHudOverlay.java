@@ -46,9 +46,12 @@ public final class AbilityHudOverlay {
     private static final int[] gluttonyTargetModes = new int[3];
     private static boolean statsVisible;
     private static boolean devourCharging;
+    private static String devourTargetName = "—";
     private static double devourCommittedHealth;
-    private static double devourAvailableHealth;
+    private static double devourCurrentHealth;
     private static double devourMaximumHealth;
+    private static double devourAvailableFlesh;
+    private static double devourFleshPotential;
 
     private AbilityHudOverlay() {}
 
@@ -79,9 +82,12 @@ public final class AbilityHudOverlay {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.player.getId() != packet.casterId()) return;
         devourCharging = packet.active();
+        devourTargetName = packet.targetName();
         devourCommittedHealth = Math.max(0.0, packet.committedHealth());
-        devourAvailableHealth = Math.max(0.0, packet.availableHealth());
+        devourCurrentHealth = Math.max(0.0, packet.currentHealth());
         devourMaximumHealth = Math.max(1.0, packet.maximumHealth());
+        devourAvailableFlesh = Math.max(0.0, packet.availableFlesh());
+        devourFleshPotential = Math.max(0.0, packet.fleshPotential());
     }
 
     public static void toggleStats() {
@@ -99,6 +105,7 @@ public final class AbilityHudOverlay {
     static boolean auraActive() { return auraActive; }
     static double avarice() { return avarice; }
     static int gluttonyAbility() { return gluttonyAbility; }
+    static boolean devourCharging() { return devourCharging; }
     static int gluttonyTargetMode(int ability) {
         return ability >= 0 && ability < gluttonyTargetModes.length ? gluttonyTargetModes[ability] : 0;
     }
@@ -152,25 +159,30 @@ public final class AbilityHudOverlay {
     }
 
     private static void renderDevourCharge(GuiGraphics graphics, Minecraft minecraft) {
-        int width = 184;
-        int height = 56;
+        int width = 200;
+        int height = 80;
         int x = graphics.guiWidth() / 2 - width / 2;
-        int y = graphics.guiHeight() - 92;
+        int y = graphics.guiHeight() - 116;
         double extractionBonus = devourCommittedHealth * 0.5;
         int teeth = (int) Math.floor(devourCommittedHealth / 20.0);
         graphics.fill(x, y, x + width, y + height, 0xD0120508);
         graphics.fill(x, y, x + 3, y + height, 0xFF9B2335);
         graphics.fill(x, y, x + width, y + 2, 0xFFCE4052);
         drawCentered(graphics, minecraft, "DEVOUR", x + width / 2, y + 7, 0xFFFFB8B8);
+        String target = minecraft.font.plainSubstrByWidth("TARGET: " + devourTargetName, width - 18);
+        graphics.drawString(minecraft.font, target, x + 9, y + 21, 0xFFFFFFFF, false);
         graphics.drawString(minecraft.font,
                 String.format("HP COMMITTED: %.1f  (%d teeth)", devourCommittedHealth, teeth),
-                x + 9, y + 21, 0xFFFF7777, false);
+                x + 9, y + 33, 0xFFFF7777, false);
         graphics.drawString(minecraft.font,
                 String.format("EXTRACTION BONUS: +%.1f%%", extractionBonus),
-                x + 9, y + 33, 0xFFFFD0A8, false);
+                x + 9, y + 45, 0xFFFFD0A8, false);
         graphics.drawString(minecraft.font,
-                String.format("GLUTTONY HP: %.1f / %.1f", devourAvailableHealth, devourMaximumHealth),
-                x + 9, y + 45, 0xFFE6C6C6, false);
+                String.format("CURRENT HP: %.1f / %.1f", devourCurrentHealth, devourMaximumHealth),
+                x + 9, y + 57, 0xFFE6C6C6, false);
+        graphics.drawString(minecraft.font,
+                String.format("FLESH READY: %.1f / %.1f", devourAvailableFlesh, devourFleshPotential),
+                x + 9, y + 69, 0xFFD9B3FF, false);
     }
 
     private static void renderPrideCharge(GuiGraphics graphics, Minecraft minecraft,
