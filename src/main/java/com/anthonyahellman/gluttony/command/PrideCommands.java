@@ -5,7 +5,9 @@ import com.anthonyahellman.gluttony.data.PrideData;
 import com.anthonyahellman.gluttony.data.SinData;
 import com.anthonyahellman.gluttony.gameplay.AbilityHudSync;
 import com.anthonyahellman.gluttony.gameplay.PrideEvents;
+import com.anthonyahellman.gluttony.gameplay.PrideAbility;
 import com.anthonyahellman.gluttony.gameplay.PrideProgression;
+import com.anthonyahellman.gluttony.gameplay.PrideVfxTestController;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -48,6 +50,9 @@ public final class PrideCommands {
         root.then(Commands.literal("reset").requires(source -> source.hasPermission(2))
                 .executes(context -> reset(context.getSource())));
         dispatcher.register(root);
+        dispatcher.register(Commands.literal("pride_vfx_test")
+                .requires(source -> source.hasPermission(2))
+                .executes(context -> startVfxTest(context.getSource())));
     }
 
     private static int grant(CommandSourceStack source, PrideData.Trial trial, int amount) {
@@ -113,11 +118,20 @@ public final class PrideCommands {
         source.sendSuccess(() -> Component.literal(String.format("Conquered Stats: +%.0f max health | +%.0f attack",
                 data.maxHealthBonus(), data.attackDamageBonus())), false);
         source.sendSuccess(() -> Component.literal("Trials completed: " + data.completedTrials() + " / 4"), false);
-        source.sendSuccess(() -> Component.literal("Sovereign's Advance: "
+        source.sendSuccess(() -> Component.literal("Total conquests: " + data.totalConquests()), false);
+        source.sendSuccess(() -> Component.literal("Lucifer's Fall: "
                 + (data.totalBossKills() >= 4 ? "Unlocked" : "Locked (" + data.totalBossKills() + " / 4 bosses)")), false);
-        if (data.fullyAwakened()) {
-            source.sendSuccess(() -> Component.literal("Evolution: Absolute Domination").withStyle(ChatFormatting.GOLD), false);
-        }
+        source.sendSuccess(() -> Component.literal("Charge stage: " + PrideAbility.chargeStage(player) + " / 5")
+                .withStyle(ChatFormatting.GOLD), false);
+        return 1;
+    }
+
+    private static int startVfxTest(CommandSourceStack source) {
+        ServerPlayer player = player(source);
+        if (player == null) return 0;
+        PrideVfxTestController.start(player);
+        source.sendSuccess(() -> Component.literal("Lucifer's Fall VFX prototype started.")
+                .withStyle(ChatFormatting.GOLD), false);
         return 1;
     }
 

@@ -20,7 +20,6 @@ import net.minecraft.world.item.ItemStack;
 
 public final class PouchOfMammonMenu extends AbstractContainerMenu {
     public static final int DIVEST_BUTTON = 0;
-    public static final int MARKET_BUTTON = 1;
     public static final int CORE_HEALTH_BUTTON = 10;
     public static final int CORE_ATTACK_BUTTON = 11;
     public static final int CORE_ARMOR_BUTTON = 12;
@@ -69,14 +68,6 @@ public final class PouchOfMammonMenu extends AbstractContainerMenu {
 
     @Override
     public boolean clickMenuButton(Player player, int id) {
-        if (id == MARKET_BUTTON) {
-            if (!player.level().isClientSide) {
-                player.displayClientMessage(Component.literal(
-                        "Market customer payments and interface are still TBD.")
-                        .withStyle(ChatFormatting.GOLD), false);
-            }
-            return true;
-        }
         if (!(player instanceof ServerPlayer serverPlayer)
                 || !(pouch instanceof PouchInventory inventory)) return false;
         if (SinData.selected(serverPlayer) != SinData.NaturalSin.GREED) return false;

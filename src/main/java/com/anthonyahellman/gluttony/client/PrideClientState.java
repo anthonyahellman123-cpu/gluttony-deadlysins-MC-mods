@@ -3,7 +3,7 @@ package com.anthonyahellman.gluttony.client;
 import com.anthonyahellman.gluttony.network.PrideStatePacket;
 
 public final class PrideClientState {
-    private static PrideStatePacket state = new PrideStatePacket(0, 0, 0, 0, 0, 0, 0);
+    private static PrideStatePacket state = new PrideStatePacket(0, 0, 0, 0, 0, 0, 0, 0);
 
     private PrideClientState() {}
 

@@ -6,7 +6,7 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class ModNetwork {
-    private static final String VERSION = "5";
+    private static final String VERSION = "15";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(GluttonyMod.MOD_ID, "main"),
             () -> VERSION,
@@ -27,5 +27,26 @@ public final class ModNetwork {
                 GreedStatePacket::encode, GreedStatePacket::decode, GreedStatePacket::handle);
         CHANNEL.registerMessage(4, PrideStatePacket.class,
                 PrideStatePacket::encode, PrideStatePacket::decode, PrideStatePacket::handle);
+        CHANNEL.registerMessage(5, GluttonyAbilitySelectionPacket.class,
+                GluttonyAbilitySelectionPacket::encode, GluttonyAbilitySelectionPacket::decode,
+                GluttonyAbilitySelectionPacket::handle);
+        CHANNEL.registerMessage(6, GluttonyTargetModePacket.class,
+                GluttonyTargetModePacket::encode, GluttonyTargetModePacket::decode,
+                GluttonyTargetModePacket::handle);
+        CHANNEL.registerMessage(7, PrideVfxTestPacket.class,
+                PrideVfxTestPacket::encode, PrideVfxTestPacket::decode,
+                PrideVfxTestPacket::handle);
+        CHANNEL.registerMessage(8, SoulSiphonVfxPacket.class,
+                SoulSiphonVfxPacket::encode, SoulSiphonVfxPacket::decode,
+                SoulSiphonVfxPacket::handle);
+        CHANNEL.registerMessage(9, DevourVfxPacket.class,
+                DevourVfxPacket::encode, DevourVfxPacket::decode,
+                DevourVfxPacket::handle);
+        CHANNEL.registerMessage(10, BeelzebubVfxPacket.class,
+                BeelzebubVfxPacket::encode, BeelzebubVfxPacket::decode,
+                BeelzebubVfxPacket::handle);
+        CHANNEL.registerMessage(11, DevourChargePacket.class,
+                DevourChargePacket::encode, DevourChargePacket::decode,
+                DevourChargePacket::handle);
     }
 }

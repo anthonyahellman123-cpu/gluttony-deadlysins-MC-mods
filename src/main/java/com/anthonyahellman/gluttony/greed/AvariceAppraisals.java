@@ -20,6 +20,7 @@ import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.SmithingTransformRecipe;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.OnDatapackSyncEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -52,6 +53,7 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
     public enum AppraisalSource {
         ANCHOR("ANCHOR"),
         RECIPE_DERIVED("RECIPE DERIVED"),
+        EQUIVALENT_TAG("EQUIVALENT TAG"),
         RESOURCE_FAMILY("RESOURCE FAMILY"),
         CONFIGURED_OVERRIDE("CONFIGURED OVERRIDE");
 
@@ -186,21 +188,18 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
                                                                   RegistryAccess registryAccess) {
         Map<ResourceLocation, Double> anchors = effectiveAnchors();
         Map<ResourceLocation, ResourceFamily> classifications = AppraisalResourceFamilies.classifyAll();
+        Map<ResourceLocation, Double> equivalentValues = new HashMap<>();
+        Map<ResourceLocation, ResourceLocation> equivalentPaths = new HashMap<>();
         Map<ResourceLocation, Double> familySeeded = new HashMap<>();
         Map<ResourceLocation, ResourceLocation> familyPaths = new HashMap<>();
-        classifications.forEach((id, family) -> {
-            double familyValue = configuredFamilyValues.getOrDefault(family, 0.0);
-            if (familyValue > 0.0) {
-                familySeeded.put(id, familyValue);
-                familyPaths.put(id, new ResourceLocation(GluttonyMod.MOD_ID,
-                        "family_seed/" + family.name().toLowerCase()));
-            }
-        });
-        Map<ResourceLocation, Double> working = new HashMap<>(familySeeded);
+        Map<ResourceLocation, Double> working = new HashMap<>();
         working.putAll(configuredValues);
         working.putAll(anchors);
         Map<ResourceLocation, Double> derived = new HashMap<>();
         Map<ResourceLocation, ResourceLocation> derivedRecipes = new HashMap<>();
+
+        // First exhaust authoritative values, equivalent material tags, and recipes. Family
+        // defaults are deliberately absent here so they cannot masquerade as equivalent evidence.
         boolean changed;
         int passes = 0;
         do {
@@ -213,61 +212,70 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
                         || configuredValues.containsKey(familyCandidate.getKey())
                         || working.containsKey(familyCandidate.getKey())) continue;
                 working.put(familyCandidate.getKey(), familyCandidate.getValue());
-                familySeeded.put(familyCandidate.getKey(), familyCandidate.getValue());
-                familyPaths.put(familyCandidate.getKey(),
+                equivalentValues.put(familyCandidate.getKey(), familyCandidate.getValue());
+                equivalentPaths.put(familyCandidate.getKey(),
                         familyDerivation.paths().get(familyCandidate.getKey()));
                 changed = true;
             }
-            Map<ResourceLocation, Candidate> candidates = new HashMap<>();
-            for (Recipe<?> recipe : recipes.getRecipes()) {
-                if (recipe.getType() != RecipeType.CRAFTING || recipe.isSpecial()) continue;
-                ItemStack result = recipe.getResultItem(registryAccess);
-                if (result.isEmpty()) continue;
-                ResourceLocation resultId = BuiltInRegistries.ITEM.getKey(result.getItem());
-                if (anchors.containsKey(resultId) || configuredValues.containsKey(resultId)) continue;
-                double ingredientTotal = 0.0;
-                boolean reliable = true;
-                for (Ingredient ingredient : recipe.getIngredients()) {
-                    if (ingredient.isEmpty()) continue;
-                    ItemStack[] choices = ingredient.getItems();
-                    if (choices.length == 0) { reliable = false; break; }
-                    double cheapestChoice = Double.POSITIVE_INFINITY;
-                    for (ItemStack choice : choices) {
-                        ResourceLocation choiceId = BuiltInRegistries.ITEM.getKey(choice.getItem());
-                        double choiceValue = working.getOrDefault(choiceId, 0.0);
-                        if (choiceValue <= 0.0) {
-                            reliable = false;
-                            break;
-                        }
-                        cheapestChoice = Math.min(cheapestChoice, choiceValue);
-                    }
-                    if (!reliable || !Double.isFinite(cheapestChoice)) break;
-                    ingredientTotal += cheapestChoice;
-                }
-                if (reliable && ingredientTotal > 0.0) {
-                    Candidate candidate = new Candidate(ingredientTotal / Math.max(1, result.getCount()),
-                            recipe.getId());
-                    candidates.merge(resultId, candidate,
-                            (left, right) -> left.value() <= right.value() ? left : right);
-                }
-            }
+            Map<ResourceLocation, Candidate> candidates = recipeCandidates(recipes, registryAccess,
+                    working, anchors, configuredValues);
             for (Map.Entry<ResourceLocation, Candidate> candidate : candidates.entrySet()) {
                 double old = derived.getOrDefault(candidate.getKey(), Double.POSITIVE_INFINITY);
                 if (candidate.getValue().value() + 0.0001 < old) {
                     working.put(candidate.getKey(), candidate.getValue().value());
                     derived.put(candidate.getKey(), candidate.getValue().value());
                     derivedRecipes.put(candidate.getKey(), candidate.getValue().recipeId());
+                    equivalentValues.remove(candidate.getKey());
+                    equivalentPaths.remove(candidate.getKey());
                     changed = true;
                 }
             }
             passes++;
         } while (changed && passes < 64);
+
+        // Only genuinely unresolved classified base resources receive conservative family seeds.
+        classifications.forEach((id, family) -> {
+            if (working.containsKey(id)) return;
+            double familyValue = configuredFamilyValues.getOrDefault(family, 0.0);
+            if (familyValue > 0.0) {
+                familySeeded.put(id, familyValue);
+                working.put(id, familyValue);
+                familyPaths.put(id, new ResourceLocation(GluttonyMod.MOD_ID,
+                        "family_seed/" + family.name().toLowerCase()));
+            }
+        });
+
+        // Family seeds may now unlock the existing recipe graph. Recipe evidence outranks the
+        // fallback on the output, but family-derived values never feed equivalent-tag inference.
+        int familyPasses = 0;
+        do {
+            changed = false;
+            Map<ResourceLocation, Candidate> candidates = recipeCandidates(recipes, registryAccess,
+                    working, anchors, configuredValues);
+            for (Map.Entry<ResourceLocation, Candidate> candidate : candidates.entrySet()) {
+                double old = derived.getOrDefault(candidate.getKey(), Double.POSITIVE_INFINITY);
+                if (candidate.getValue().value() + 0.0001 < old) {
+                    working.put(candidate.getKey(), candidate.getValue().value());
+                    derived.put(candidate.getKey(), candidate.getValue().value());
+                    derivedRecipes.put(candidate.getKey(), candidate.getValue().recipeId());
+                    familySeeded.remove(candidate.getKey());
+                    familyPaths.remove(candidate.getKey());
+                    equivalentValues.remove(candidate.getKey());
+                    equivalentPaths.remove(candidate.getKey());
+                    changed = true;
+                }
+            }
+            familyPasses++;
+        } while (changed && familyPasses < 64);
+
         Map<ResourceLocation, Double> resolved = new HashMap<>(familySeeded);
+        resolved.putAll(equivalentValues);
         resolved.putAll(derived);
         resolved.putAll(configuredValues);
         resolved.putAll(anchors);
         Map<ResourceLocation, AppraisalSource> sources = new HashMap<>();
         familySeeded.keySet().forEach(id -> sources.put(id, AppraisalSource.RESOURCE_FAMILY));
+        equivalentValues.keySet().forEach(id -> sources.put(id, AppraisalSource.EQUIVALENT_TAG));
         derived.keySet().forEach(id -> sources.put(id, AppraisalSource.RECIPE_DERIVED));
         configuredValues.keySet().forEach(id -> sources.put(id, AppraisalSource.CONFIGURED_OVERRIDE));
         anchors.keySet().forEach(id -> sources.put(id, AppraisalSource.ANCHOR));
@@ -275,15 +283,94 @@ public final class AvariceAppraisals extends SimpleJsonResourceReloadListener {
         serverSources = Map.copyOf(sources);
         serverRecipes = Map.copyOf(derivedRecipes);
         serverFamilies = classifications;
-        serverFamilyPaths = Map.copyOf(familyPaths);
+        Map<ResourceLocation, ResourceLocation> resolutionPaths = new HashMap<>(familyPaths);
+        resolutionPaths.putAll(equivalentPaths);
+        serverFamilyPaths = Map.copyOf(resolutionPaths);
         derivationDirty = false;
         ResourceLocation dirt = new ResourceLocation("minecraft", "dirt");
-        LOGGER.info("Roots of Sin appraisal ready: {} anchors, {} configured overrides, {} family seeds, "
-                        + "{} recipe-derived, {} classified family items, {} total values",
-                anchors.size(), configuredValues.size(), familySeeded.size(), derived.size(),
+        LOGGER.info("Roots of Sin appraisal ready: {} anchors, {} configured overrides, "
+                        + "{} equivalent-tag, {} family seeds, {} recipe-derived, "
+                        + "{} classified family items, {} total values",
+                anchors.size(), configuredValues.size(), equivalentValues.size(), familySeeded.size(), derived.size(),
                 classifications.size(), serverValues.size());
         LOGGER.info("Roots of Sin server appraisal audit: dirt={} source={}",
                 serverValues.getOrDefault(dirt, 0.0), serverSources.get(dirt));
+    }
+
+    private static Map<ResourceLocation, Candidate> recipeCandidates(RecipeManager recipes,
+                                                                      RegistryAccess registryAccess,
+                                                                      Map<ResourceLocation, Double> working,
+                                                                      Map<ResourceLocation, Double> anchors,
+                                                                      Map<ResourceLocation, Double> overrides) {
+        Map<ResourceLocation, Candidate> candidates = new HashMap<>();
+        for (Recipe<?> recipe : recipes.getRecipes()) {
+            if (!supportsAppraisalDerivation(recipe)) continue;
+            ItemStack result = recipe.getResultItem(registryAccess);
+            if (result.isEmpty()) continue;
+            ResourceLocation resultId = BuiltInRegistries.ITEM.getKey(result.getItem());
+            if (anchors.containsKey(resultId) || overrides.containsKey(resultId)) continue;
+            double ingredientTotal = 0.0;
+            boolean reliable = true;
+            int ingredientIndex = 0;
+            for (Ingredient ingredient : recipe.getIngredients()) {
+                if (ingredient.isEmpty()) continue;
+                ItemStack[] choices = ingredient.getItems();
+                if (choices.length == 0) { reliable = false; break; }
+                double cheapestChoice = Double.POSITIVE_INFINITY;
+                for (ItemStack choice : choices) {
+                    ResourceLocation choiceId = BuiltInRegistries.ITEM.getKey(choice.getItem());
+                    double choiceValue = working.getOrDefault(choiceId, 0.0);
+                    if (choiceValue > 0.0) {
+                        double consumedValue = choiceValue;
+                        if (choice.hasCraftingRemainingItem()) {
+                            ItemStack remainder = choice.getCraftingRemainingItem();
+                            ResourceLocation remainderId = remainder.isEmpty() ? null
+                                    : BuiltInRegistries.ITEM.getKey(remainder.getItem());
+                            double returnedValue = remainderId == null ? 0.0
+                                    : working.getOrDefault(remainderId, 0.0);
+                            // An unknown returned container must never inflate the output.
+                            consumedValue = returnedValue > 0.0
+                                    ? Math.max(0.0, choiceValue - returnedValue) : 0.0;
+                        }
+                        cheapestChoice = Math.min(cheapestChoice, consumedValue);
+                    } else if (choice.hasCraftingRemainingItem()) {
+                        // Reusable/tooling ingredients have zero conservative consumption cost.
+                        cheapestChoice = 0.0;
+                    }
+                }
+                if (!Double.isFinite(cheapestChoice)) {
+                    // Vanilla smithing templates are consumed, but most have no supported value
+                    // path. Omitting only the unresolved template slot safely under-appraises the
+                    // transform instead of blocking every Netherite upgrade or inventing a price.
+                    if (recipe instanceof SmithingTransformRecipe && ingredientIndex == 0) {
+                        ingredientIndex++;
+                        continue;
+                    }
+                    reliable = false;
+                    break;
+                }
+                ingredientTotal += cheapestChoice;
+                ingredientIndex++;
+            }
+            if (reliable && ingredientTotal > 0.0) {
+                Candidate candidate = new Candidate(ingredientTotal / Math.max(1, result.getCount()),
+                        recipe.getId());
+                candidates.merge(resultId, candidate,
+                        (left, right) -> left.value() <= right.value() ? left : right);
+            }
+        }
+        return candidates;
+    }
+
+    private static boolean supportsAppraisalDerivation(Recipe<?> recipe) {
+        if (recipe.isSpecial()) return false;
+        RecipeType<?> type = recipe.getType();
+        return type == RecipeType.CRAFTING
+                || type == RecipeType.SMELTING
+                || type == RecipeType.SMOKING
+                || type == RecipeType.CAMPFIRE_COOKING
+                || type == RecipeType.BLASTING
+                || (type == RecipeType.SMITHING && recipe instanceof SmithingTransformRecipe);
     }
 
     @Override

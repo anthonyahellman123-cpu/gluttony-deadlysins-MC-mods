@@ -7,6 +7,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 
 import java.util.HashMap;
@@ -45,12 +46,20 @@ public final class AppraisalResourceFamilies {
             Map.entry("gems", ResourceFamily.ORE),
             Map.entry("crops", ResourceFamily.CROP),
             Map.entry("seeds", ResourceFamily.CROP),
+            Map.entry("fruits", ResourceFamily.CROP),
             Map.entry("raw_meats", ResourceFamily.MOB_DROP),
+            Map.entry("boss_drops", ResourceFamily.BOSS_DROP),
             Map.entry("leather", ResourceFamily.MOB_DROP),
             Map.entry("feathers", ResourceFamily.MOB_DROP),
             Map.entry("bones", ResourceFamily.MOB_DROP),
             Map.entry("string", ResourceFamily.MOB_DROP),
-            Map.entry("mob_drops", ResourceFamily.MOB_DROP)
+            Map.entry("mob_drops", ResourceFamily.MOB_DROP),
+            Map.entry("eggs", ResourceFamily.MOB_DROP),
+            Map.entry("ender_pearls", ResourceFamily.MOB_DROP),
+            Map.entry("gunpowder", ResourceFamily.MOB_DROP),
+            Map.entry("slimeballs", ResourceFamily.MOB_DROP),
+            Map.entry("logs", ResourceFamily.WOOD),
+            Map.entry("woods", ResourceFamily.WOOD)
     );
 
     private AppraisalResourceFamilies() {}
@@ -69,6 +78,17 @@ public final class AppraisalResourceFamilies {
         classifyBlockTag(result, new ResourceLocation("minecraft", "flowers"), ResourceFamily.CROP);
         classifyBlockTag(result, new ResourceLocation("minecraft", "small_flowers"), ResourceFamily.CROP);
         classifyBlockTag(result, new ResourceLocation("minecraft", "tall_flowers"), ResourceFamily.CROP);
+        classifyBlockTag(result, new ResourceLocation("minecraft", "replaceable"), ResourceFamily.CROP);
+        classifyBlockTag(result, new ResourceLocation("minecraft", "leaves"), ResourceFamily.CROP);
+
+        // Edibility is stable item evidence, not registry-name guessing. Ordinary raw meats retain
+        // MOB_DROP through family precedence, while untagged fruit and other natural foods gain a
+        // conservative CROP/NATURAL RESOURCE fallback. Crafted and cooked foods are subsequently
+        // replaced by the higher-priority recipe-derived value whenever their ancestry resolves.
+        BuiltInRegistries.ITEM.holders().forEach(holder -> {
+            ItemStack stack = holder.value().getDefaultInstance();
+            if (!stack.isEmpty() && stack.isEdible()) putBest(result, holder, ResourceFamily.CROP);
+        });
 
         // Vanilla lacks one complete ordinary-mob-drop tag. These are classifications only, never prices.
         classifyVanilla(result, ResourceFamily.MOB_DROP, "beef", "leather", "feather", "chicken",
@@ -148,6 +168,9 @@ public final class AppraisalResourceFamilies {
         if (tagId.getNamespace().equals("minecraft")
                 && (path.equals("logs") || path.equals("logs_that_burn"))) return ResourceFamily.WOOD;
         if (!tagId.getNamespace().equals("forge") && !tagId.getNamespace().equals("c")) return null;
+        if (path.equals("foods/raw_meat") || path.equals("foods/raw_meats")) {
+            return ResourceFamily.MOB_DROP;
+        }
         String root = path.indexOf('/') < 0 ? path : path.substring(0, path.indexOf('/'));
         return STANDARD_TAG_ROOTS.get(root);
     }

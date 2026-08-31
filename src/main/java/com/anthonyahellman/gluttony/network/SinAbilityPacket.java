@@ -1,6 +1,9 @@
 package com.anthonyahellman.gluttony.network;
 
+import com.anthonyahellman.gluttony.data.GluttonyData;
 import com.anthonyahellman.gluttony.data.SinData;
+import com.anthonyahellman.gluttony.gameplay.Beelzebub;
+import com.anthonyahellman.gluttony.gameplay.Devour;
 import com.anthonyahellman.gluttony.gameplay.PrideAbility;
 import com.anthonyahellman.gluttony.gameplay.SoulSiphon;
 import com.anthonyahellman.gluttony.menu.PouchInventory;
@@ -14,26 +17,38 @@ import net.minecraftforge.network.NetworkHooks;
 
 import java.util.function.Supplier;
 
-public final class SinAbilityPacket {
-    public static void encode(SinAbilityPacket packet, FriendlyByteBuf buffer) {}
+public record SinAbilityPacket(int action, int chargeTicks) {
+    public static final int PRESS = 0;
 
-    public static SinAbilityPacket decode(FriendlyByteBuf buffer) {
-        return new SinAbilityPacket();
+    public static void encode(SinAbilityPacket packet, FriendlyByteBuf buffer) {
+        buffer.writeVarInt(packet.action);
+        buffer.writeVarInt(packet.chargeTicks);
     }
-
+    public static SinAbilityPacket decode(FriendlyByteBuf buffer) {
+        return new SinAbilityPacket(buffer.readVarInt(), buffer.readVarInt());
+    }
     public static void handle(SinAbilityPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
         NetworkEvent.Context context = contextSupplier.get();
         context.enqueueWork(() -> {
             ServerPlayer player = context.getSender();
             if (player == null || !player.isAlive() || player.isSpectator()) return;
             switch (SinData.selected(player)) {
-                case GLUTTONY -> SoulSiphon.tryCast(player);
-                case PRIDE -> PrideAbility.tryCast(player);
-                case GREED -> openPouch(player);
+                case GLUTTONY -> gluttony(player, packet);
+                case PRIDE -> { if (packet.action == PRESS) PrideAbility.tryCast(player); }
+                case GREED -> { if (packet.action == PRESS) openPouch(player); }
                 case NONE -> { }
             }
         });
         context.setPacketHandled(true);
+    }
+
+    private static void gluttony(ServerPlayer player, SinAbilityPacket packet) {
+        GluttonyData.Ability selected = GluttonyData.of(player).selectedAbility();
+        if (packet.action == PRESS) {
+            if (selected == GluttonyData.Ability.SOUL_SIPHON) SoulSiphon.arm(player);
+            else if (selected == GluttonyData.Ability.DEVOUR) Devour.toggle(player);
+            else if (selected == GluttonyData.Ability.BEELZEBUB) Beelzebub.toggle(player);
+        }
     }
 
     private static void openPouch(ServerPlayer player) {

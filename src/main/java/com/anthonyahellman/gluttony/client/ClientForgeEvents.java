@@ -15,11 +15,17 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = GluttonyMod.MOD_ID, value = Dist.CLIENT)
 public final class ClientForgeEvents {
+    private static boolean abilityHeld;
     private ClientForgeEvents() {}
 
     @SubscribeEvent
     public static void clientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+        // Keep Gluttony's short-lived VFX on the same proven client tick path as input/HUD.
+        // This avoids relying on separate annotation-discovered subscribers for each effect.
+        SoulSiphonVfxClient.tick();
+        DevourVfxClient.tick();
+        BeelzebubVfxClient.tick();
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.level == null || minecraft.isPaused()) return;
         if (AbilityHudOverlay.greedAwakened()) {
@@ -30,9 +36,23 @@ public final class ClientForgeEvents {
                 minecraft.player.hurtTime = maximumVisibleHurtTicks;
             }
         }
-        while (ClientModEvents.SIN_ABILITY.consumeClick()) {
+        if (AbilityHudOverlay.devourCharging()) {
+            // Mirror the server's rooted stance without touching movement speed, which
+            // Minecraft feeds into dynamic FOV and caused the disorienting charge zoom.
+            minecraft.player.input.leftImpulse *= 0.10F;
+            minecraft.player.input.forwardImpulse *= 0.10F;
+            var movement = minecraft.player.getDeltaMovement();
+            minecraft.player.setDeltaMovement(movement.x * 0.10, movement.y, movement.z * 0.10);
+        }
+        boolean down = ClientModEvents.SIN_ABILITY.isDown();
+        if (down && !abilityHeld) {
+            abilityHeld = true;
             if (minecraft.screen instanceof PouchOfMammonScreen) minecraft.player.closeContainer();
-            else if (minecraft.screen == null) ModNetwork.CHANNEL.sendToServer(new SinAbilityPacket());
+            else if (minecraft.screen == null) {
+                ModNetwork.CHANNEL.sendToServer(new SinAbilityPacket(SinAbilityPacket.PRESS, 0));
+            }
+        } else if (abilityHeld) {
+            abilityHeld = false;
         }
         while (ClientModEvents.SIN_STATS.consumeClick()) {
             if (AbilityHudOverlay.sinId() <= 0) continue;

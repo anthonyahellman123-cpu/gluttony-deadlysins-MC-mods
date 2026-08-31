@@ -8,13 +8,14 @@ import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
 
-public record PrideStatePacket(int dragons, int withers, int guardians, int wardens,
+public record PrideStatePacket(int dragons, int withers, int guardians, int wardens, long totalConquests,
                                double maxHealthBonus, double attackBonus, double bossDamageBonus) {
     public static void encode(PrideStatePacket packet, FriendlyByteBuf buffer) {
         buffer.writeVarInt(packet.dragons);
         buffer.writeVarInt(packet.withers);
         buffer.writeVarInt(packet.guardians);
         buffer.writeVarInt(packet.wardens);
+        buffer.writeVarLong(packet.totalConquests);
         buffer.writeDouble(packet.maxHealthBonus);
         buffer.writeDouble(packet.attackBonus);
         buffer.writeDouble(packet.bossDamageBonus);
@@ -22,7 +23,7 @@ public record PrideStatePacket(int dragons, int withers, int guardians, int ward
 
     public static PrideStatePacket decode(FriendlyByteBuf buffer) {
         return new PrideStatePacket(buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(),
-                buffer.readVarInt(), buffer.readDouble(), buffer.readDouble(), buffer.readDouble());
+                buffer.readVarInt(), buffer.readVarLong(), buffer.readDouble(), buffer.readDouble(), buffer.readDouble());
     }
 
     public static void handle(PrideStatePacket packet, Supplier<NetworkEvent.Context> contextSupplier) {

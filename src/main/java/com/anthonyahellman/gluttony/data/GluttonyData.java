@@ -2,6 +2,8 @@ package com.anthonyahellman.gluttony.data;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 
 public final class GluttonyData {
     private static final String ROOT = "DemonsBountyGluttony";
@@ -12,6 +14,27 @@ public final class GluttonyData {
     private static final String LEVEL = "Level";
     private static final String HEALTH = "ExtractedHealth";
     private static final String ATTACK = "ExtractedAttack";
+    private static final String HISTORICAL_MAX_HEALTH = "HistoricalGluttonyMaxHealth";
+    private static final String SELECTED_ABILITY = "SelectedAbility";
+    private static final String SIPHON_TARGET_MODE = "SoulSiphonTargetMode";
+    private static final String DEVOUR_TARGET_MODE = "DevourTargetMode";
+    private static final String BEELZEBUB_TARGET_MODE = "BeelzebubTargetMode";
+
+    public enum Ability {
+        SOUL_SIPHON(10), DEVOUR(50), BEELZEBUB(100);
+        private final int unlockLevel;
+        Ability(int unlockLevel) { this.unlockLevel = unlockLevel; }
+        public int unlockLevel() { return unlockLevel; }
+    }
+
+    public enum TargetMode {
+        MOBS, BOTH, PLAYERS;
+
+        public boolean allows(LivingEntity target) {
+            boolean player = target instanceof Player;
+            return this == BOTH || (this == PLAYERS ? player : !player);
+        }
+    }
 
     private final CompoundTag tag;
 
@@ -37,6 +60,44 @@ public final class GluttonyData {
     public int level() { return Math.max(1, tag.getInt(LEVEL)); }
     public double extractedHealth() { return tag.getDouble(HEALTH); }
     public double extractedAttack() { return tag.getDouble(ATTACK); }
+    public double historicalMaxHealth() {
+        // Existing saves migrate from their current consumed-health total. The normal
+        // attribute refresh records the player's actual non-Gluttony base afterward.
+        return Math.max(tag.getDouble(HISTORICAL_MAX_HEALTH), 20.0 + extractedHealth());
+    }
+    public void recordHistoricalMaxHealth(double amount) {
+        if (amount > historicalMaxHealth()) tag.putDouble(HISTORICAL_MAX_HEALTH, amount);
+    }
+    public Ability selectedAbility() {
+        int stored = tag.getInt(SELECTED_ABILITY);
+        Ability[] values = Ability.values();
+        Ability selected = stored >= 0 && stored < values.length ? values[stored] : Ability.SOUL_SIPHON;
+        return level() >= selected.unlockLevel ? selected : Ability.SOUL_SIPHON;
+    }
+    public boolean selectAbility(Ability ability) {
+        if (ability == null || level() < ability.unlockLevel) return false;
+        tag.putInt(SELECTED_ABILITY, ability.ordinal());
+        return true;
+    }
+    public TargetMode targetMode(Ability ability) {
+        String key = targetModeKey(ability);
+        int stored = tag.getInt(key);
+        TargetMode[] values = TargetMode.values();
+        return stored >= 0 && stored < values.length ? values[stored] : TargetMode.MOBS;
+    }
+    public void setTargetMode(Ability ability, TargetMode mode) {
+        if (ability != null && mode != null) tag.putInt(targetModeKey(ability), mode.ordinal());
+    }
+    public boolean allowsTarget(Ability ability, LivingEntity target) {
+        return target != null && targetMode(ability).allows(target);
+    }
+    private static String targetModeKey(Ability ability) {
+        return switch (ability) {
+            case SOUL_SIPHON -> SIPHON_TARGET_MODE;
+            case DEVOUR -> DEVOUR_TARGET_MODE;
+            case BEELZEBUB -> BEELZEBUB_TARGET_MODE;
+        };
+    }
 
     public void addSouls(double amount) {
         if (amount <= 0) return;
@@ -60,6 +121,18 @@ public final class GluttonyData {
     public void addExtractedStats(double health, double attack) {
         tag.putDouble(HEALTH, extractedHealth() + health);
         tag.putDouble(ATTACK, extractedAttack() + attack);
+    }
+
+    public double sacrificeExtractedHealth(double amount) {
+        double spent = Math.min(extractedHealth(), Math.max(0.0, amount));
+        tag.putDouble(HEALTH, extractedHealth() - spent);
+        return spent;
+    }
+
+    public double sacrificeExtractedAttack(double amount) {
+        double spent = Math.min(extractedAttack(), Math.max(0.0, amount));
+        tag.putDouble(ATTACK, extractedAttack() - spent);
+        return spent;
     }
 
     public static int levelFor(double lifetimeSouls) {

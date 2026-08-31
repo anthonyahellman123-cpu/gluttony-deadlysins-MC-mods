@@ -1,8 +1,6 @@
 package com.anthonyahellman.gluttony.data;
 
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.core.NonNullList;
 import net.minecraft.world.ContainerHelper;
@@ -16,10 +14,8 @@ public final class GreedData {
     private static final String ASSETS_DIVESTED = "AssetsDivested";
     private static final String VAULT_INCOME = "VaultIncome";
     private static final String COFFER_INCOME = "CofferIncome";
-    private static final String MARKET_ACTIVITY = "MarketActivity";
     private static final String CONTRACT_CLAIMS = "ContractClaims";
     private static final String POUCH = "Pouch";
-    private static final String MARKET_STOCK = "MarketStock";
     private static final String CORE_HEALTH = "CoreHealthPurchases";
     private static final String CORE_ATTACK = "CoreAttackPurchases";
     private static final String CORE_ARMOR = "CoreArmorPurchases";
@@ -41,7 +37,6 @@ public final class GreedData {
         DIVESTMENT,
         VAULT,
         COFFER,
-        MARKET
     }
 
     private final CompoundTag tag;
@@ -79,7 +74,6 @@ public final class GreedData {
         tag.putDouble(LIFETIME_EARNED, lifetimeEarned() + received);
         if (source == IncomeSource.VAULT) tag.putDouble(VAULT_INCOME, vaultIncome() + received);
         if (source == IncomeSource.COFFER) tag.putDouble(COFFER_INCOME, cofferIncome() + received);
-        if (source == IncomeSource.MARKET) tag.putLong(MARKET_ACTIVITY, marketActivity() + 1L);
     }
 
     public boolean spendAvarice(double amount) {
@@ -94,7 +88,6 @@ public final class GreedData {
     public long assetsDivested() { return Math.max(0L, tag.getLong(ASSETS_DIVESTED)); }
     public double vaultIncome() { return Math.max(0.0, tag.getDouble(VAULT_INCOME)); }
     public double cofferIncome() { return Math.max(0.0, tag.getDouble(COFFER_INCOME)); }
-    public long marketActivity() { return Math.max(0L, tag.getLong(MARKET_ACTIVITY)); }
     public long contractClaims() { return Math.max(0L, tag.getLong(CONTRACT_CLAIMS)); }
 
     public void recordDivestedAssets(long count) {
@@ -111,36 +104,6 @@ public final class GreedData {
         CompoundTag pouch = new CompoundTag();
         ContainerHelper.saveAllItems(pouch, items);
         tag.put(POUCH, pouch);
-    }
-
-    public void addMarketStock(ItemStack stack) {
-        if (stack.isEmpty()) return;
-        ListTag stock = tag.getList(MARKET_STOCK, Tag.TAG_COMPOUND);
-        ItemStack remaining = stack.copy();
-        for (int index = 0; index < stock.size() && !remaining.isEmpty(); index++) {
-            CompoundTag entry = stock.getCompound(index);
-            ItemStack existing = ItemStack.of(entry);
-            if (!existing.isEmpty() && ItemStack.isSameItemSameTags(existing, remaining)) {
-                int moved = Math.min(remaining.getCount(), existing.getMaxStackSize() - existing.getCount());
-                if (moved > 0) {
-                    existing.grow(moved);
-                    remaining.shrink(moved);
-                    stock.set(index, existing.save(new CompoundTag()));
-                }
-            }
-        }
-        while (!remaining.isEmpty()) {
-            int moved = Math.min(remaining.getCount(), remaining.getMaxStackSize());
-            ItemStack stored = remaining.copy();
-            stored.setCount(moved);
-            stock.add(stored.save(new CompoundTag()));
-            remaining.shrink(moved);
-        }
-        tag.put(MARKET_STOCK, stock);
-    }
-
-    public int marketStockStacks() {
-        return tag.getList(MARKET_STOCK, Tag.TAG_COMPOUND).size();
     }
 
     public int coreHealthPurchases() { return nonNegativeInt(CORE_HEALTH); }

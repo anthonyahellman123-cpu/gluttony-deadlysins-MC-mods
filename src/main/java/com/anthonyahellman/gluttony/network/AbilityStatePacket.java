@@ -11,7 +11,9 @@ import java.util.function.Supplier;
 public record AbilityStatePacket(int sin, boolean unlocked, boolean evolved, int cooldownTicks, int recastTicks,
                                  int level, double currentSouls, double lifetimeSouls,
                                  double extractedHealth, double extractedAttack,
-                                 int nextLevelSouls, boolean auraActive, double avarice) {
+                                 int nextLevelSouls, boolean auraActive, double avarice,
+                                 int prideChargeTicks, int prideChargeStage, int gluttonyAbility,
+                                 int siphonTargetMode, int devourTargetMode, int beelzebubTargetMode) {
     public static void encode(AbilityStatePacket packet, FriendlyByteBuf buffer) {
         buffer.writeVarInt(packet.sin);
         buffer.writeBoolean(packet.unlocked);
@@ -26,13 +28,20 @@ public record AbilityStatePacket(int sin, boolean unlocked, boolean evolved, int
         buffer.writeVarInt(packet.nextLevelSouls);
         buffer.writeBoolean(packet.auraActive);
         buffer.writeDouble(packet.avarice);
+        buffer.writeVarInt(packet.prideChargeTicks);
+        buffer.writeVarInt(packet.prideChargeStage);
+        buffer.writeVarInt(packet.gluttonyAbility);
+        buffer.writeVarInt(packet.siphonTargetMode);
+        buffer.writeVarInt(packet.devourTargetMode);
+        buffer.writeVarInt(packet.beelzebubTargetMode);
     }
 
     public static AbilityStatePacket decode(FriendlyByteBuf buffer) {
         return new AbilityStatePacket(buffer.readVarInt(), buffer.readBoolean(), buffer.readBoolean(),
                 buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readDouble(),
                 buffer.readDouble(), buffer.readDouble(), buffer.readDouble(), buffer.readVarInt(),
-                buffer.readBoolean(), buffer.readDouble());
+                buffer.readBoolean(), buffer.readDouble(), buffer.readVarInt(), buffer.readVarInt(),
+                buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt());
     }
 
     public static void handle(AbilityStatePacket packet, Supplier<NetworkEvent.Context> contextSupplier) {

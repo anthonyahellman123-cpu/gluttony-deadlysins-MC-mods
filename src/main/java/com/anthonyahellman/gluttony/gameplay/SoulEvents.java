@@ -36,6 +36,10 @@ public final class SoulEvents {
         GluttonyData data = GluttonyData.of(player);
         if (!data.active()) return;
 
+        // Devour awards only what its bite actually consumed; bypass the normal
+        // max-health kill extraction path so overkill cannot create phantom gains.
+        if (player.getPersistentData().getBoolean(Devour.DEVOUR_DAMAGE_TAG)) return;
+
         boolean siphonKill = victim.getPersistentData().getBoolean(SoulSiphon.SIPHON_DAMAGE_TAG);
         int oldLevel = data.level();
 
@@ -52,8 +56,6 @@ public final class SoulEvents {
             data.addExtractedStats(maxHealth * fraction, Math.max(0, attack) * fraction);
             applyAttributes(player, data);
         }
-
-        SoulSiphon.spawnSoulTrail(player.serverLevel(), victim, player);
 
         if (data.awakening()) {
             data.stabilize();
@@ -111,8 +113,12 @@ public final class SoulEvents {
 
     private static void applyAttributes(ServerPlayer player, GluttonyData data) {
         boolean gluttony = SinData.selected(player) == SinData.NaturalSin.GLUTTONY;
-        setModifier(player.getAttribute(Attributes.MAX_HEALTH), HEALTH_ID, "Gluttony consumed health",
+        AttributeInstance maxHealth = player.getAttribute(Attributes.MAX_HEALTH);
+        setModifier(maxHealth, HEALTH_ID, "Gluttony consumed health",
                 gluttony ? data.extractedHealth() : 0.0);
+        if (gluttony && maxHealth != null) {
+            data.recordHistoricalMaxHealth(maxHealth.getBaseValue() + data.extractedHealth());
+        }
         setModifier(player.getAttribute(Attributes.ATTACK_DAMAGE), ATTACK_ID, "Gluttony consumed attack",
                 gluttony ? data.extractedAttack() : 0.0);
         if (player.getHealth() > player.getMaxHealth()) player.setHealth(player.getMaxHealth());

@@ -1,0 +1,10 @@
+{
+  "family_values": {
+    "crop": 0.5,
+    "mob_drop": 0.5,
+    "boss_drop": 100.0,
+    "ingot": 2.0,
+    "ore": 1.0,
+    "wood": 2.0
+  }
+}
